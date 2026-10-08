@@ -22,12 +22,15 @@ from models import AnalyzeResponse, CareerLensLLMResponse, NameExtractionRespons
 from pdf_extractor import extract_pdf_data
 from benchmark import get_evaluation_metrics
 from ml_engine import get_model_metadata, predict_readiness
+from interview_router import interview_router
 
 app = FastAPI(
     title="CareerLens API",
     description="Backend service for CareerLens employability & proof-of-work analysis using FastAPI and Groq",
     version="1.0.0",
 )
+
+app.include_router(interview_router)
 
 # ─── CORS Middleware ─────────────────────────────────────────────────────────
 origins = [

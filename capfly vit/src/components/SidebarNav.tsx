@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, Shield, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, Shield, TrendingUp, Mic } from "lucide-react";
 
 export type AppStep = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -180,6 +181,32 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
               );
             })}
           </nav>
+        </div>
+
+        {/* Practice Mock Interview Standalone Sandbox */}
+        <div className="pt-1">
+          <Link
+            href="/interview"
+            className="flex items-center justify-between w-full p-2.5 rounded-xl border border-[#D6CEBE] dark:border-[#3D3A35] bg-[#FFFFFF] dark:bg-[#1E1C1A] hover:border-[#2E6B47] transition-all group shadow-2xs"
+            title="Launch interactive practice mock interview"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#E2EDE5] text-[#2E6B47] flex items-center justify-center shrink-0">
+                <Mic className="w-3.5 h-3.5" />
+              </div>
+              <div className="text-left">
+                <span className="text-xs font-bold block text-[#24201D] dark:text-[#EDE8DF] group-hover:text-[#2E6B47] transition-colors leading-tight">
+                  Mock Interview
+                </span>
+                <span className="text-[10px] text-[#8A7E6C] dark:text-[#A89E8D] block leading-tight font-mono">
+                  Live Spoken Defense
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#FAF1E8] text-[#9A3412] font-semibold border border-[#E8CEB5]">
+              Practice
+            </span>
+          </Link>
         </div>
       </div>
 
