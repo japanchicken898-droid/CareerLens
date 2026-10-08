@@ -10,6 +10,7 @@ import {
   validateProfileInput,
 } from "@/utils/validation";
 import { extractCandidateNameFromPdf } from "@/utils/pdfNameExtractor";
+import { extractNameViaBackend, checkBackendHealth } from "@/services/backendApiService";
 import { GithubIcon, LeetcodeIcon } from "@/components/Icons";
 import {
   UploadCloud,
@@ -21,6 +22,7 @@ import {
   FileText,
   User,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 
 interface InputSectionProps {
@@ -38,6 +40,17 @@ export const InputSection: React.FC<InputSectionProps> = ({
   const [candidateName, setCandidateName] = useState(initialProfile?.name || "");
   const [isExtractingName, setIsExtractingName] = useState(false);
   const [autoExtracted, setAutoExtracted] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<{ online: boolean; groq: boolean } | null>(null);
+
+  React.useEffect(() => {
+    checkBackendHealth().then((res) => {
+      if (res && res.status === "ok") {
+        setBackendStatus({ online: true, groq: Boolean(res.groq_configured) });
+      } else {
+        setBackendStatus({ online: false, groq: false });
+      }
+    });
+  }, []);
 
   const [resumeFile, setResumeFile] = useState<File | null>(initialProfile?.resume || null);
   const [resumeFileName, setResumeFileName] = useState(initialProfile?.resumeFileName || "");
@@ -82,10 +95,18 @@ export const InputSection: React.FC<InputSectionProps> = ({
     setResumeFileName(file.name);
     setResumeFileSize(file.size);
 
-    // Auto-extract candidate name from PDF page 1
+    // Auto-extract candidate name from PDF page 1 via FastAPI backend (with client fallback)
     setIsExtractingName(true);
     try {
-      const extractedName = await extractCandidateNameFromPdf(file);
+      // 1. Try FastAPI backend endpoint (pdfplumber)
+      const backendResult = await extractNameViaBackend(file);
+      let extractedName = backendResult?.name?.trim() || "";
+
+      // 2. Client-side fallback if backend returned empty
+      if (!extractedName) {
+        extractedName = (await extractCandidateNameFromPdf(file)) || "";
+      }
+
       if (extractedName && extractedName.trim()) {
         setCandidateName(extractedName.trim());
         setAutoExtracted(true);
@@ -142,6 +163,14 @@ export const InputSection: React.FC<InputSectionProps> = ({
       jobDescription,
     };
 
+    if (!resumeFile) {
+      setErrors((prev) => ({
+        ...prev,
+        resume: "Please upload your resume PDF to proceed.",
+      }));
+      return;
+    }
+
     const validation = validateProfileInput(formData);
 
     if (!validation.isValid) {
@@ -190,6 +219,27 @@ export const InputSection: React.FC<InputSectionProps> = ({
             Upload your resume PDF and connect your GitHub and LeetCode proofs of work.
           </p>
         </div>
+
+        {backendStatus?.online ? (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-[#E2EDE5] text-[#2E6B47] border border-[#A3CFBB]/70 self-start sm:self-center shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#2E6B47] animate-pulse" />
+            <span className="font-semibold">Backend Active: http://localhost:8000</span>
+            {backendStatus.groq ? (
+              <span className="text-[10px] bg-[#2E6B47] text-[#FAF8F5] px-1.5 py-0.2 rounded-md font-sans font-bold">
+                Groq LLM
+              </span>
+            ) : (
+              <span className="text-[10px] bg-[#A2610A] text-[#FAF8F5] px-1.5 py-0.2 rounded-md font-sans font-bold">
+                Deterministic
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-[#FEF8ED] text-[#A2610A] border border-[#F2D79E] self-start sm:self-center">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span>Connecting to Backend...</span>
+          </div>
+        )}
       </div>
 
       {/* Main Input Form Card */}
@@ -475,17 +525,28 @@ export const InputSection: React.FC<InputSectionProps> = ({
           )}
         </div>
 
+        {/* Inline alert if resume is missing or invalid */}
+        {errors.resume && (
+          <div className="p-3.5 rounded-xl bg-red-50/90 border border-red-200 text-red-800 text-xs sm:text-sm font-medium flex items-center gap-2.5 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+            <span>{errors.resume}</span>
+          </div>
+        )}
+
         {/* Submit Button Row */}
         <div className="pt-3 border-t border-[#E8E2D7] flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-[#8A7E6C]">
-            Step 1: Save candidate profile data securely.
+            {!resumeFile
+              ? "⚠️ Upload your resume PDF to enable profile analysis."
+              : "Step 1: Save candidate profile data securely."}
           </p>
 
           <button
             type="submit"
-            disabled={isSubmitting || isLoading}
+            disabled={isSubmitting || isLoading || !resumeFile}
+            title={!resumeFile ? "Please upload your resume PDF to proceed." : undefined}
             id="submit-profile-btn"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#24201D] hover:bg-[#3D3732] active:bg-[#181513] text-[#FAF8F5] font-semibold text-sm shadow-sm transition-all hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#24201D] hover:bg-[#3D3732] active:bg-[#181513] text-[#FAF8F5] font-semibold text-sm shadow-sm transition-all hover:translate-y-[-1px] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting || isLoading ? (
               <>

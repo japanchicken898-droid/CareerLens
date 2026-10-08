@@ -82,6 +82,20 @@ function skillsFromGitHub(repos: ExtractedProfile["github"]["repositories"]): No
         },
       });
     }
+
+    if (repo.inspectedTechnologies) {
+      for (const tech of repo.inspectedTechnologies) {
+        skills.push({
+          raw: tech,
+          normalized: normalizeSkillName(tech),
+          source: "github" as DataSource,
+          evidence: {
+            repository: repo.name,
+            context: `Codebase manifest / infrastructure file in "${repo.name}"`,
+          },
+        });
+      }
+    }
   }
 
   return skills;
@@ -171,21 +185,14 @@ export async function extractProfileData(
   });
 
   const resumeFile = profile.resume instanceof File ? profile.resume : null;
-  let parsedResume = await (resumeFile
-    ? parseResume(resumeFile)
-    : Promise.resolve({
-        extractedText: "",
-        isTextBased: false,
-        personal: { name: null, email: null, phone: null, location: null, summary: null },
-        education: [],
-        skills: { programmingLanguages: [], frameworks: [], libraries: [], databases: [], tools: [], other: [] },
-        projects: [],
-        experience: [],
-        certifications: [],
-        achievements: [],
-        links: [],
-        parseError: "No resume file available. The PDF file may not have been re-uploaded after page refresh.",
-      }));
+  if (!resumeFile) {
+    throw new Error("Resume PDF is mandatory. Skill extraction cannot proceed without a uploaded resume.");
+  }
+
+  const parsedResume = await parseResume(resumeFile);
+  if (!parsedResume.isTextBased || !parsedResume.extractedText.trim()) {
+    throw new Error("Unable to extract text from the uploaded PDF resume. Please ensure the resume contains readable text.");
+  }
 
   // ── Stage 2: GitHub ─────────────────────────
   onProgress({
@@ -224,19 +231,11 @@ export async function extractProfileData(
   const leetcodeSkillObjects: NormalizedSkill[] = profile.leetcodeUrl
     ? [
         {
-          raw: "Data Structures & Algorithms",
-          normalized: "Data Structures & Algorithms",
+          raw: "Data Structures & Algorithms (LeetCode)",
+          normalized: "Data Structures & Algorithms (LeetCode)",
           source: "leetcode",
           evidence: {
             context: `LeetCode Profile: ${profile.leetcodeUrl} (DSA proof)`,
-          },
-        },
-        {
-          raw: "Problem Solving",
-          normalized: "Problem Solving",
-          source: "leetcode",
-          evidence: {
-            context: `Verified LeetCode Problem Solving Profile`,
           },
         },
       ]

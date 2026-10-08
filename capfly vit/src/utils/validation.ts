@@ -90,15 +90,17 @@ export function validateProfileInput(data: {
     errors.name = "Student Name is required.";
   }
 
-  // 2. Resume PDF validation
-  if (!data.resumeFile && !data.resumeFileName) {
-    errors.resume = "Resume PDF file is required.";
-  } else if (data.resumeFile) {
+  // 2. Resume PDF validation (Strictly mandatory)
+  if (!data.resumeFile) {
+    errors.resume = "Please upload your resume PDF to proceed.";
+  } else {
     const isPdf =
       data.resumeFile.type === "application/pdf" ||
       data.resumeFile.name.toLowerCase().endsWith(".pdf");
     if (!isPdf) {
       errors.resume = "Only PDF files (.pdf) are accepted.";
+    } else if (data.resumeFile.size === 0) {
+      errors.resume = "The uploaded PDF is empty. Please upload a valid resume.";
     } else if (data.resumeFile.size > 10 * 1024 * 1024) {
       errors.resume = `File size exceeds 10 MB limit (${formatFileSize(data.resumeFile.size)}).`;
     }

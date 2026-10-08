@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import type { ExtractedProfile } from "@/types/extraction";
 import { GithubIcon, LeetcodeIcon } from "@/components/Icons";
+import { NoResumeLockCard } from "@/components/NoResumeLockCard";
 import {
   FileText,
   CheckCircle2,
@@ -48,6 +49,17 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
 
   const { resume, github, normalizedSkills, profile } = extracted;
 
+  const hasValidResume = Boolean(
+    resume &&
+    resume.extractedText &&
+    resume.extractedText.trim().length > 0 &&
+    resume.isTextBased
+  );
+
+  if (!hasValidResume) {
+    return <NoResumeLockCard onReturnToStep1={onEdit} />;
+  }
+
   // Extract LeetCode username if available
   const leetcodeUsername = useMemo(() => {
     if (!profile.leetcodeUrl) return null;
@@ -70,12 +82,39 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
     >();
 
     for (const s of normalizedSkills) {
-      const key = s.normalized.toLowerCase().trim();
+      let key = s.normalized.toLowerCase().trim();
+      let displayName = s.normalized;
+
+      // Combine Git and GitHub into single canonical entity
+      if (key === "git" || key === "github" || key === "git / github" || key === "git/github") {
+        key = "git / github";
+        displayName = "Git / GitHub";
+      }
+
+      // Merge LeetCode & Problem Solving into single canonical Data Structures & Algorithms (LeetCode) item
+      if (
+        key === "data structures & algorithms" ||
+        key === "data structures and algorithms" ||
+        key === "data structures" ||
+        key === "algorithms" ||
+        key === "problem solving" ||
+        key === "problem solving (dsa)" ||
+        key === "dsa" ||
+        key === "leetcode" ||
+        key === "data structures & algorithms (leetcode)"
+      ) {
+        key = "data structures & algorithms (leetcode)";
+        displayName = "Data Structures & Algorithms (LeetCode)";
+      }
+
       const existing = map.get(key) || {
-        name: s.normalized,
+        name: displayName,
         sources: new Set<"resume" | "github" | "leetcode">(),
         evidence: new Set<string>(),
       };
+
+      // Keep canonical display name
+      existing.name = displayName;
 
       if (s.source === "resume" || s.source === "github" || s.source === "leetcode") {
         existing.sources.add(s.source);
@@ -95,28 +134,17 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
       map.set(key, existing);
     }
 
-    // Ensure LeetCode DSA skills are represented if leetcodeUrl exists
+    // Ensure LeetCode DSA canonical skill is present with leetcode source if leetcodeUrl exists
     if (profile.leetcodeUrl) {
-      const dsaKey = "data structures & algorithms";
-      if (!map.has(dsaKey)) {
-        map.set(dsaKey, {
-          name: "Data Structures & Algorithms",
-          sources: new Set(["leetcode"]),
-          evidence: new Set([`LeetCode Profile: @${leetcodeUsername} (DSA proof)`]),
-        });
-      } else {
-        map.get(dsaKey)!.sources.add("leetcode");
-        map.get(dsaKey)!.evidence.add(`Verified LeetCode Profile: @${leetcodeUsername}`);
-      }
-
-      const psKey = "problem solving (dsa)";
-      if (!map.has(psKey)) {
-        map.set(psKey, {
-          name: "Problem Solving (DSA)",
-          sources: new Set(["leetcode"]),
-          evidence: new Set([`Verified LeetCode Competitive Problem Solving Profile`]),
-        });
-      }
+      const canonicalDsaKey = "data structures & algorithms (leetcode)";
+      const existing = map.get(canonicalDsaKey) || {
+        name: "Data Structures & Algorithms (LeetCode)",
+        sources: new Set<"resume" | "github" | "leetcode">(),
+        evidence: new Set<string>(),
+      };
+      existing.sources.add("leetcode");
+      existing.evidence.add(`LeetCode Profile: @${leetcodeUsername} (DSA proof)`);
+      map.set(canonicalDsaKey, existing);
     }
 
     // Convert to sorted array (skills with multiple sources first, then alphabetical)
@@ -269,8 +297,8 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
             <p className="font-bold text-sm text-[#24201D]">
               {resumeSkillsCount > 0 ? `${resumeSkillsCount} skills found` : "Resume text parsed"}
             </p>
-            <p className="text-[11px] text-[#6E6659] truncate">
-              {resume.education.length} edu • {resume.experience.length} exp • {resume.projects.length} proj
+            <p className="text-[11px] text-[#6E6659] truncate font-medium">
+              {resume.statusText || `${resume.education.length} edu • ${resume.experience.length} exp • ${resume.projects.length} proj`}
             </p>
           </div>
 

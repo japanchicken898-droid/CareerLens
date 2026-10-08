@@ -80,6 +80,7 @@ export interface ParsedResume {
   achievements: string[];
   links: string[];                // all URLs found in resume
   parseError: string | null;      // null = success
+  statusText?: string;            // summary status like '1 edu • 2 exp • 1 proj'
 }
 
 // ─── GitHub ───────────────────────────────────
@@ -121,6 +122,11 @@ export interface GitHubRepository {
   isFork: boolean;
   isArchived: boolean;
   size: number;                   // kb
+  inspectedTechnologies?: string[];
+  hasDocker?: boolean;
+  hasCicd?: boolean;
+  hasSql?: boolean;
+  hasRedis?: boolean;
 }
 
 export interface GitHubActivity {

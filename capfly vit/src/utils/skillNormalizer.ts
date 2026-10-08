@@ -16,9 +16,9 @@ const SKILL_ALIASES: Record<string, string> = {
   node: "Node.js",
   "next.js": "Next.js",
   nextjs: "Next.js",
-  "react.js": "React",
-  reactjs: "React",
-  react: "React",
+  "react.js": "React.js",
+  reactjs: "React.js",
+  react: "React.js",
   "vue.js": "Vue.js",
   vuejs: "Vue.js",
   vue: "Vue.js",
@@ -34,6 +34,36 @@ const SKILL_ALIASES: Record<string, string> = {
   fastify: "Fastify",
   nestjs: "NestJS",
   "nest.js": "NestJS",
+
+  // Audio / Real-time / Media
+  webrtc: "WebRTC",
+  "audio dsp": "Audio DSP",
+  dsp: "Audio DSP",
+  "digital signal processing": "Audio DSP",
+  "streaming stt": "Streaming STT",
+  stt: "Streaming STT",
+  "speech to text": "Streaming STT",
+  "speech-to-text": "Streaming STT",
+
+  // Core CS Concepts
+  "computer networks": "Computer Networks",
+  networking: "Computer Networks",
+  dbms: "DBMS",
+  oop: "OOP",
+  oops: "OOP",
+  "object oriented programming": "OOP",
+  "object-oriented programming": "OOP",
+  debugging: "Debugging",
+
+  // LeetCode & Problem Solving
+  "data structures & algorithms": "Data Structures & Algorithms (LeetCode)",
+  "data structures and algorithms": "Data Structures & Algorithms (LeetCode)",
+  "data structures": "Data Structures & Algorithms (LeetCode)",
+  algorithms: "Data Structures & Algorithms (LeetCode)",
+  "problem solving": "Data Structures & Algorithms (LeetCode)",
+  "problem solving (dsa)": "Data Structures & Algorithms (LeetCode)",
+  dsa: "Data Structures & Algorithms (LeetCode)",
+  leetcode: "Data Structures & Algorithms (LeetCode)",
 
   // Python
   python: "Python",
@@ -152,8 +182,10 @@ const SKILL_ALIASES: Record<string, string> = {
   mlops: "MLOps",
 
   // Tools
-  git: "Git",
-  github: "GitHub",
+  git: "Git / GitHub",
+  github: "Git / GitHub",
+  "git / github": "Git / GitHub",
+  "git/github": "Git / GitHub",
   gitlab: "GitLab",
   bitbucket: "Bitbucket",
   jira: "Jira",
@@ -162,6 +194,7 @@ const SKILL_ALIASES: Record<string, string> = {
   graphql: "GraphQL",
   rest: "REST APIs",
   "rest api": "REST APIs",
+  "rest apis": "REST APIs",
   restful: "REST APIs",
   grpc: "gRPC",
   websocket: "WebSockets",

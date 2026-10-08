@@ -34,9 +34,9 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
 
   return (
     <aside
-      className={`w-full lg:w-68 shrink-0 flex flex-col justify-between p-4 border-b lg:border-b-0 lg:border-r min-h-full transition-colors duration-300 relative ${
+      className={`w-full lg:w-68 shrink-0 flex flex-col justify-between p-4 border-b lg:border-b-0 lg:border-r self-stretch transition-colors duration-300 relative ${
         dk
-          ? "border-[#2E2B27]/80 bg-[#161412]/95 text-[#EDE8DF]"
+          ? "border-[#2E2B27]/80 bg-[#161412] text-[#EDE8DF]"
           : "border-[#D6CEBE]/80 bg-[#FAF8F5] text-[#24201D]"
       }`}
     >
@@ -189,7 +189,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
             Overall Analysis
           </span>
           <span className={dk ? "text-[#EDE8DF]" : "text-[#24201D]"}>
-            {completedSteps.length}/7 Completed
+            {completedSteps.length}/6 Completed
           </span>
         </div>
         <div className="w-full h-2 bg-[#EFE9DD] dark:bg-[#2A2722] rounded-full overflow-hidden p-0.5 border border-[#D6CEBE]/60 dark:border-[#3D3A35]">

@@ -147,21 +147,142 @@ export async function GET(
   const rawRepos = reposResult.data ?? [];
   const repositories: GitHubRepository[] = rawRepos.map(mapRepo);
 
-  // 3. For top 5 non-fork repos by stars, fetch languages + README
+  // 3. For top 6 non-fork repos, deeply inspect languages, README, and code manifests
   const topRepos = [...repositories]
     .filter((r) => !r.isFork)
     .sort((a, b) => b.stars - a.stars)
-    .slice(0, 5);
+    .slice(0, 6);
 
   await Promise.allSettled(
     topRepos.map(async (repo) => {
       const fullName = repo.fullName;
+      const detectedTech = new Set<string>();
 
       // Languages
       const langResult = await fetchGitHubJSON<Record<string, number>>(`/repos/${fullName}/languages`);
       if (langResult.data && !langResult.rateLimited) {
         repo.languages = Object.keys(langResult.data);
+        for (const l of repo.languages) {
+          if (l.toLowerCase().includes("dockerfile")) {
+            repo.hasDocker = true;
+            detectedTech.add("Docker");
+          }
+          if (l.toLowerCase().includes("sql")) {
+            repo.hasSql = true;
+            detectedTech.add("SQL");
+          }
+        }
       }
+
+      // Root Contents inspection (Dockerfile, package.json, requirements.txt, go.mod, .github)
+      const contentsResult = await fetchGitHubJSON<Array<{ name: string; url: string; download_url?: string }>>(
+        `/repos/${fullName}/contents`
+      );
+      if (contentsResult.data && Array.isArray(contentsResult.data) && !contentsResult.rateLimited) {
+        const fileNames = new Set(contentsResult.data.map((f) => f.name.toLowerCase()));
+
+        // Docker inspection
+        if (fileNames.has("dockerfile") || fileNames.has("docker-compose.yml") || fileNames.has("docker-compose.yaml")) {
+          repo.hasDocker = true;
+          detectedTech.add("Docker");
+          detectedTech.add("Containerization");
+        }
+
+        // Database schema / migrations
+        if (fileNames.has("migrations") || fileNames.has("schema.sql") || fileNames.has("database.sql")) {
+          repo.hasSql = true;
+          detectedTech.add("SQL");
+          detectedTech.add("Relational Databases");
+        }
+
+        // CI/CD Workflows
+        if (fileNames.has(".github")) {
+          const wfResult = await fetchGitHubJSON<unknown[]>(`/repos/${fullName}/contents/.github/workflows`);
+          if (wfResult.data && Array.isArray(wfResult.data) && wfResult.data.length > 0) {
+            repo.hasCicd = true;
+            detectedTech.add("CI/CD");
+            detectedTech.add("GitHub Actions");
+          }
+        }
+
+        // package.json inspection
+        const pkgItem = contentsResult.data.find((f) => f.name.toLowerCase() === "package.json");
+        if (pkgItem && pkgItem.download_url) {
+          try {
+            const rawRes = await fetch(pkgItem.download_url, { next: { revalidate: 300 } });
+            if (rawRes.ok) {
+              const pkgJson = await rawRes.json() as Record<string, unknown>;
+              const allDeps = {
+                ...(pkgJson.dependencies as Record<string, string> || {}),
+                ...(pkgJson.devDependencies as Record<string, string> || {}),
+              };
+              for (const dep of Object.keys(allDeps)) {
+                const d = dep.toLowerCase();
+                if (d.includes("express")) detectedTech.add("Express.js");
+                if (d.includes("fastify") || d.includes("nestjs")) detectedTech.add("Backend APIs");
+                if (d.includes("react")) detectedTech.add("React.js");
+                if (d.includes("next")) detectedTech.add("Next.js");
+                if (d.includes("redis")) { repo.hasRedis = true; detectedTech.add("Redis"); }
+                if (d.includes("pg") || d.includes("postgres") || d.includes("mysql") || d.includes("prisma") || d.includes("typeorm")) {
+                  repo.hasSql = true;
+                  detectedTech.add("SQL");
+                  detectedTech.add("Relational Databases");
+                }
+                if (d.includes("socket.io") || d.includes("websocket")) detectedTech.add("WebSockets");
+                if (d.includes("tailwind")) detectedTech.add("TailwindCSS");
+                if (d.includes("typescript")) detectedTech.add("TypeScript");
+                if (d.includes("jest") || d.includes("mocha") || d.includes("cypress")) detectedTech.add("Unit Testing");
+              }
+            }
+          } catch {
+            // ignore JSON parse or network errors
+          }
+        }
+
+        // requirements.txt inspection
+        const reqItem = contentsResult.data.find((f) => f.name.toLowerCase() === "requirements.txt");
+        if (reqItem && reqItem.download_url) {
+          try {
+            const rawRes = await fetch(reqItem.download_url, { next: { revalidate: 300 } });
+            if (rawRes.ok) {
+              const text = await rawRes.text();
+              const textLower = text.toLowerCase();
+              if (textLower.includes("fastapi")) { detectedTech.add("FastAPI"); detectedTech.add("REST APIs"); }
+              if (textLower.includes("flask")) detectedTech.add("Flask");
+              if (textLower.includes("django")) detectedTech.add("Django");
+              if (textLower.includes("redis")) { repo.hasRedis = true; detectedTech.add("Redis"); }
+              if (textLower.includes("psycopg") || textLower.includes("sqlalchemy") || textLower.includes("mysql")) {
+                repo.hasSql = true;
+                detectedTech.add("SQL");
+                detectedTech.add("Relational Databases");
+              }
+              if (textLower.includes("pytest")) detectedTech.add("PyTest");
+              if (textLower.includes("docker")) { repo.hasDocker = true; detectedTech.add("Docker"); }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        // go.mod inspection
+        const goModItem = contentsResult.data.find((f) => f.name.toLowerCase() === "go.mod");
+        if (goModItem && goModItem.download_url) {
+          try {
+            const rawRes = await fetch(goModItem.download_url, { next: { revalidate: 300 } });
+            if (rawRes.ok) {
+              const text = (await rawRes.text()).toLowerCase();
+              if (text.includes("gin") || text.includes("fiber")) detectedTech.add("REST APIs");
+              if (text.includes("redis")) { repo.hasRedis = true; detectedTech.add("Redis"); }
+              if (text.includes("gorm") || text.includes("sql")) { repo.hasSql = true; detectedTech.add("SQL"); }
+              if (text.includes("websocket")) detectedTech.add("WebSockets");
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      repo.inspectedTechnologies = Array.from(detectedTech);
 
       // README
       const readmeResult = await fetchGitHubJSON<{ content?: string; encoding?: string }>(
@@ -173,7 +294,6 @@ export async function GET(
         const encoding = readmeResult.data.encoding;
         if (content && encoding === "base64") {
           try {
-            // Decode base64 safely
             repo.readmeContent = Buffer.from(content.replace(/\n/g, ""), "base64").toString("utf-8").slice(0, 3000);
           } catch {
             repo.readmeContent = null;

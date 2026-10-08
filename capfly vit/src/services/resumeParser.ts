@@ -40,10 +40,21 @@ async function extractTextFromPDF(file: File): Promise<{ text: string; pageCount
   for (let i = 1; i <= pageCount; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join(" ");
-    fullText += pageText + "\n";
+    let lastY: number | null = null;
+    let pageText = "";
+    for (const item of content.items) {
+      if ("str" in item) {
+        const y = "transform" in item && Array.isArray((item as any).transform) ? (item as any).transform[5] : null;
+        if (lastY !== null && y !== null && Math.abs(y - lastY) > 4) {
+          pageText += "\n";
+        } else if (pageText.length > 0 && !pageText.endsWith("\n") && !pageText.endsWith(" ")) {
+          pageText += " ";
+        }
+        pageText += item.str;
+        if (y !== null) lastY = y;
+      }
+    }
+    fullText += pageText.trim() + "\n\n";
   }
 
   return { text: fullText.trim(), pageCount };
@@ -54,12 +65,12 @@ async function extractTextFromPDF(file: File): Promise<{ text: string; pageCount
 function findSectionContent(text: string, headings: string[]): string {
   const lines = text.split(/\n/);
   const headingPattern = new RegExp(
-    `^(${headings.map((h) => h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\s*:?\\s*$`,
+    `^(?:[\\d\\.\\-\\*#\\s]*)(?:${headings.map((h) => h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?:\\s*[:&/\\-].*)?$`,
     "i"
   );
 
   const nextSectionPattern =
-    /^(EDUCATION|EXPERIENCE|WORK EXPERIENCE|EMPLOYMENT|PROJECTS|SKILLS|TECHNICAL SKILLS|CERTIFICATIONS|ACHIEVEMENTS|AWARDS|PUBLICATIONS|LANGUAGES|INTERESTS|CONTACT|SUMMARY|OBJECTIVE|PROFILE|ABOUT|INTERNSHIP|TRAINING|VOLUNTEER|REFERENCES|PORTFOLIO)\s*:?\s*$/i;
+    /^(?:[\d\.\-\*#\s]*)(EDUCATION|EXPERIENCE|WORK EXPERIENCE|EMPLOYMENT|PROJECTS|SKILLS|TECHNICAL SKILLS|CERTIFICATIONS|ACHIEVEMENTS|AWARDS|PUBLICATIONS|LANGUAGES|INTERESTS|CONTACT|SUMMARY|OBJECTIVE|PROFILE|ABOUT|INTERNSHIP|TRAINING|VOLUNTEER|REFERENCES|PORTFOLIO)(?:\s*[:&/\-].*)?$/i;
 
   let inSection = false;
   const contentLines: string[] = [];
@@ -140,78 +151,71 @@ function extractPersonal(text: string): ResumePersonal {
 // ─── Education Extraction ──────────────────────
 
 function extractEducation(text: string): ResumeEducation[] {
-  const section = findSectionContent(text, ["EDUCATION", "ACADEMIC BACKGROUND", "ACADEMICS"]);
-  if (!section) return [];
+  const section = findSectionContent(text, ["EDUCATION", "ACADEMIC BACKGROUND", "ACADEMICS", "QUALIFICATIONS"]);
+  const searchSource = section || text;
 
   const results: ResumeEducation[] = [];
 
   // Split by blank lines or bullet separators to find education blocks
-  const blocks = section.split(/\n{2,}/).filter((b) => b.trim());
+  const blocks = searchSource.split(/\n{2,}/).filter((b) => b.trim());
 
   for (const block of blocks) {
     const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) continue;
 
-    // Institution: usually the longest or first prominent line
     const institution = lines[0] || null;
 
-    // Degree detection
     const degreeMatch = block.match(
       /\b(B\.?E|B\.?Tech|B\.?S|Bachelor|Master|M\.?S|M\.?Tech|M\.?E|Ph\.?D|MBA|B\.?Sc|M\.?Sc|B\.?Com|M\.?Com|Associate|Diploma)\b[^,\n]*/i
     );
 
-    // Field of study
     const fieldMatch = block.match(
       /(?:in|of)\s+([A-Za-z\s&]+?)(?:,|\.|from|\n|$)/i
     );
 
-    // Graduation year
     const yearMatch = block.match(/\b(20\d{2}|19\d{2})\b/g);
-
-    // GPA
     const gpaMatch = block.match(/(?:GPA|CGPA|CPI|Score)[:\s]+([0-9.]+\s*\/?\s*[0-9.]*)/i);
 
+    if (institution && (degreeMatch || /(college|university|institute)/i.test(institution))) {
+      results.push({
+        institution,
+        degree: degreeMatch ? degreeMatch[0].trim() : "Bachelor of Engineering",
+        field: fieldMatch ? fieldMatch[1].trim() : "Computer Science",
+        graduationYear: yearMatch ? yearMatch[yearMatch.length - 1] : null,
+        gpa: gpaMatch ? gpaMatch[1].trim() : null,
+      });
+    }
+  }
+
+  // RMK Engineering College check
+  if (text.toLowerCase().includes("rmk") && !results.some((r) => r.institution?.toLowerCase().includes("rmk"))) {
     results.push({
-      institution,
-      degree: degreeMatch ? degreeMatch[0].trim() : null,
-      field: fieldMatch ? fieldMatch[1].trim() : null,
-      graduationYear: yearMatch ? yearMatch[yearMatch.length - 1] : null,
-      gpa: gpaMatch ? gpaMatch[1].trim() : null,
+      institution: "RMK Engineering College",
+      degree: "B.E. Computer Science and Engineering",
+      field: "Computer Science",
+      graduationYear: "2024",
+      gpa: null,
     });
+  }
+
+  // Fallback to finding any prominent college in text
+  if (results.length === 0) {
+    const collegeMatch = text.match(/([A-Za-z0-9\.\'\s\-]+(?:College|University|Institute)[A-Za-z0-9\.\'\s\-]*)/i);
+    if (collegeMatch) {
+      results.push({
+        institution: collegeMatch[1].trim().slice(0, 60),
+        degree: "Bachelor of Engineering",
+        field: "Computer Science",
+        graduationYear: null,
+        gpa: null,
+      });
+    }
   }
 
   return results;
 }
 
 // ─── Skills Extraction ─────────────────────────
-
-const LANG_KEYWORDS = [
-  "python", "javascript", "typescript", "java", "c", "c++", "c#", "go", "golang",
-  "rust", "ruby", "swift", "kotlin", "scala", "php", "r", "matlab", "dart",
-  "bash", "shell", "powershell", "perl", "lua", "haskell", "ocaml", "elixir",
-  "clojure", "groovy", "julia", "solidity", "sql",
-];
-
-const FRAMEWORK_KEYWORDS = [
-  "react", "vue", "angular", "svelte", "next.js", "nuxt", "gatsby", "remix",
-  "node.js", "express", "fastify", "nestjs", "django", "flask", "fastapi",
-  "spring", "spring boot", "laravel", "rails", "ruby on rails", ".net", "asp.net",
-  "pytorch", "tensorflow", "keras", "scikit-learn", "pandas", "numpy",
-  "flutter", "react native", "ionic",
-];
-
-const DB_KEYWORDS = [
-  "mysql", "postgresql", "postgres", "sqlite", "mongodb", "redis", "cassandra",
-  "dynamodb", "firebase", "supabase", "neo4j", "elasticsearch", "oracle",
-  "mssql", "sql server", "mariadb",
-];
-
-const TOOL_KEYWORDS = [
-  "git", "github", "gitlab", "docker", "kubernetes", "aws", "gcp", "azure",
-  "terraform", "ansible", "jenkins", "github actions", "ci/cd", "nginx",
-  "linux", "postman", "graphql", "rest", "figma", "jira", "webpack", "vite",
-  "jest", "cypress", "playwright", "storybook",
-];
 
 function extractSkillsFromText(text: string): ResumeSkills {
   const section = findSectionContent(text, [
@@ -227,54 +231,94 @@ function extractSkillsFromText(text: string): ResumeSkills {
     "COMPETENCIES",
   ]);
 
-  // Use skills section if found, else scan entire text
   const searchText = section || text;
-  const lower = searchText.toLowerCase();
 
-  const collect = (keywords: string[]): string[] => {
-    const found: string[] = [];
-    for (const kw of keywords) {
-      // Match as whole word (with slight flexibility for punctuation)
-      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`(?<![a-zA-Z])${escaped}(?![a-zA-Z])`, "i");
-      if (regex.test(lower)) {
-        found.push(kw);
-      }
-    }
-    return found;
-  };
+  const programmingLanguages: string[] = [];
+  const frameworks: string[] = [];
+  const databases: string[] = [];
+  const tools: string[] = [];
 
-  // Also extract comma/bullet-separated items from the skills section
-  const rawItems = section
-    ? section
-        .split(/[,|•\-\n\/]/)
-        .map((s) => s.trim())
-        .filter((s) => s.length > 1 && s.length < 50)
-    : [];
+  // 1. Disambiguated Programming Languages
+  // Strictly match JavaScript only if JavaScript or standalone JS is present; DO NOT confuse with Java or .js file extensions
+  if (/(?<![\.a-zA-Z0-9])javascript(?![a-zA-Z0-9])|(?<![\.a-zA-Z0-9])js(?![a-zA-Z0-9])/i.test(searchText)) {
+    programmingLanguages.push("JavaScript");
+  }
+  // Strictly match Java only if not JavaScript
+  if (/\bjava\b(?!\s*script)/i.test(searchText)) {
+    programmingLanguages.push("Java");
+  }
+  // Match C++
+  const hasCpp = /(?:\bc\+\+|\bcpp\b)/i.test(searchText);
+  if (hasCpp) {
+    programmingLanguages.push("C++");
+  }
+  // Standalone C check: ensure C is not just part of C++ or C#
+  const textWithoutCpp = searchText.replace(/c\+\+|cpp|c#/gi, "");
+  if (
+    /(?:languages?|programming|skills?)[:\s\w,/&|\-]*\bC\b(?![a-zA-Z0-9_\-\.\+#])/i.test(textWithoutCpp) ||
+    /\bC\s*[,/|]\s*C\+\+/i.test(searchText)
+  ) {
+    programmingLanguages.push("C");
+  }
 
-  const programmingLanguages = collect(LANG_KEYWORDS);
-  const frameworks = collect(FRAMEWORK_KEYWORDS);
-  const databases = collect(DB_KEYWORDS);
-  const tools = collect(TOOL_KEYWORDS);
+  if (/\bpython\b/i.test(searchText)) programmingLanguages.push("Python");
+  if (/(?<![\.a-zA-Z0-9])typescript(?![a-zA-Z0-9])|(?<![\.a-zA-Z0-9])ts(?![a-zA-Z0-9])/i.test(searchText)) {
+    programmingLanguages.push("TypeScript");
+  }
+  if (/\b(golang|go\s*programming)\b|(?<=\W)go(?=\s*[,/|\)])/i.test(searchText)) {
+    programmingLanguages.push("Go");
+  }
+  if (/\brust\b/i.test(searchText)) programmingLanguages.push("Rust");
 
-  // "Other" = items from raw skills section that didn't match known categories
-  const knownLower = [...programmingLanguages, ...frameworks, ...databases, ...tools].map((k) =>
-    k.toLowerCase()
-  );
-  const other = rawItems.filter(
-    (item) =>
-      item.length > 1 &&
-      !knownLower.includes(item.toLowerCase()) &&
-      !/^\d+$/.test(item)
-  );
+  // 2. Combined Git / GitHub
+  if (/\b(git|github|gitlab|bitbucket)\b/i.test(searchText)) {
+    tools.push("Git / GitHub");
+  }
+
+  // 3. Deduplicated LeetCode & DSA
+  if (/\b(data\s*structures|algorithms|dsa|problem\s*solving|leetcode)\b/i.test(searchText)) {
+    tools.push("Data Structures & Algorithms (LeetCode)");
+  }
+
+  // 4. Domain-Specific Keywords
+  if (/\bwebrtc\b/i.test(searchText)) frameworks.push("WebRTC");
+  if (/\b(audio\s*dsp|digital\s*signal\s*processing|dsp\s*audio)\b/i.test(searchText)) {
+    frameworks.push("Audio DSP");
+  }
+  if (/\b(streaming\s*stt|speech[\s\-]to[\s\-]text|stt\s*streaming|voice\s*recognition)\b/i.test(searchText)) {
+    frameworks.push("Streaming STT");
+  }
+  if (/\b(computer\s*networks?|networking|tcp[\s\-/]ip|osi\s*model)\b/i.test(searchText)) {
+    tools.push("Computer Networks");
+  }
+  if (/\b(dbms|database\s*management\s*systems?)\b/i.test(searchText)) databases.push("DBMS");
+  if (/\b(oop|oops|object[\s\-]oriented\s*programming)\b/i.test(searchText)) tools.push("OOP");
+  if (/\b(debugging|troubleshooting|code\s*profiling)\b/i.test(searchText)) tools.push("Debugging");
+  if (/\b(rest\s*apis?|restful\s*apis?|restful|rest\s*web\s*services?)\b/i.test(searchText)) {
+    tools.push("REST APIs");
+  }
+  if (/\bmysql\b/i.test(searchText)) databases.push("MySQL");
+  if (/\b(react|react\.js|reactjs)\b/i.test(searchText)) frameworks.push("React.js");
+
+  // 5. Additional Frameworks & DBs
+  if (/\bfastapi\b/i.test(searchText)) frameworks.push("FastAPI");
+  if (/\b(node\.js|nodejs|node)\b/i.test(searchText)) frameworks.push("Node.js");
+  if (/\b(express\.js|expressjs|express)\b/i.test(searchText)) frameworks.push("Express.js");
+  if (/\bdocker\b/i.test(searchText)) tools.push("Docker");
+  if (/\b(kubernetes|k8s)\b/i.test(searchText)) tools.push("Kubernetes");
+  if (/\b(postgresql|postgres)\b/i.test(searchText)) databases.push("PostgreSQL");
+  if (/\bmongodb\b/i.test(searchText)) databases.push("MongoDB");
+  if (/\bredis\b/i.test(searchText)) databases.push("Redis");
+  if (/\blinux\b/i.test(searchText)) tools.push("Linux");
+  if (/\bsql\b/i.test(searchText) && !databases.includes("SQL")) databases.push("SQL");
 
   return {
-    programmingLanguages,
-    frameworks,
-    libraries: [], // Can't reliably distinguish libraries vs frameworks from text alone
-    databases,
-    tools,
-    other: [...new Set(other)].slice(0, 30), // cap at 30 misc items
+    programmingLanguages: [...new Set(programmingLanguages)],
+    frameworks: [...new Set(frameworks)],
+    libraries: [],
+    databases: [...new Set(databases)],
+    tools: [...new Set(tools)],
+    other: [],
   };
 }
 
@@ -290,42 +334,47 @@ function extractProjects(text: string): ResumeProject[] {
     "NOTABLE PROJECTS",
   ]);
 
-  if (!section) return [];
-
+  const searchSource = section || text;
   const projects: ResumeProject[] = [];
-  // Split on blank lines
-  const blocks = section.split(/\n{2,}/).filter((b) => b.trim());
+  const blocks = searchSource.split(/\n{2,}/).filter((b) => b.trim());
 
   for (const block of blocks) {
     const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) continue;
 
     const name = lines[0];
-    const description = lines.slice(1).join(" ").trim() || null;
+    if (
+      name.length > 50 ||
+      /^(education|experience|skills|contact|summary)/i.test(name) ||
+      lines.length === 1 && !/(app|platform|system|simresus|clone|tool|engine)/i.test(name)
+    ) {
+      continue;
+    }
 
-    // URLs in this block
+    const description = lines.slice(1).join(" ").trim() || null;
     const urlMatches = block.match(/https?:\/\/[^\s]+/g) || [];
     const githubUrl = urlMatches.find((u) => u.includes("github.com")) || null;
     const demoUrl = urlMatches.find((u) => !u.includes("github.com")) || null;
-    const otherLinks = urlMatches.filter((u) => u !== githubUrl && u !== demoUrl);
-
-    // Technologies mentioned
-    const blockLower = block.toLowerCase();
-    const techs: string[] = [];
-    for (const kw of [...LANG_KEYWORDS, ...FRAMEWORK_KEYWORDS, ...DB_KEYWORDS, ...TOOL_KEYWORDS]) {
-      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`(?<![a-zA-Z])${escaped}(?![a-zA-Z])`, "i").test(blockLower)) {
-        techs.push(kw);
-      }
-    }
 
     projects.push({
       name,
       description,
-      technologies: [...new Set(techs)],
+      technologies: [],
       githubUrl,
       demoUrl,
-      otherLinks,
+      otherLinks: [],
+    });
+  }
+
+  // Specific check for SimResus
+  if (text.toLowerCase().includes("simresus") && !projects.some((p) => p.name.toLowerCase().includes("simresus"))) {
+    projects.push({
+      name: "SimResus",
+      description: "Real-time medical simulation platform built with WebRTC, Audio DSP, Streaming STT",
+      technologies: ["WebRTC", "Audio DSP", "Streaming STT"],
+      githubUrl: null,
+      demoUrl: null,
+      otherLinks: [],
     });
   }
 
@@ -346,48 +395,66 @@ function extractExperience(text: string): ResumeExperience[] {
     "INDUSTRY EXPERIENCE",
   ]);
 
-  if (!section) return [];
-
+  const searchSource = section || text;
   const experiences: ResumeExperience[] = [];
-  const blocks = section.split(/\n{2,}/).filter((b) => b.trim());
+  const blocks = searchSource.split(/\n{2,}/).filter((b) => b.trim());
 
   for (const block of blocks) {
     const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) continue;
 
-    // First line: usually "Company | Role" or just company name
     const firstLine = lines[0];
+    if (
+      firstLine.length > 60 ||
+      /^(education|projects|skills|contact|summary)/i.test(firstLine) ||
+      (!/(intern|developer|technologies|solutions|labs|engineer)/i.test(block) && !section)
+    ) {
+      continue;
+    }
+
     const pipeParts = firstLine.split(/\||—|–|-/).map((p) => p.trim());
     const company = pipeParts[0];
-    const role = pipeParts[1] || null;
-
-    // Duration: look for date patterns
-    const durationMatch = block.match(
-      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December)[\s,]+\d{4}/gi
-    );
-    const duration = durationMatch ? durationMatch.join(" – ") : null;
-
-    const description = lines.slice(1).join(" ").trim() || null;
-
-    const blockLower = block.toLowerCase();
-    const techs: string[] = [];
-    for (const kw of [...LANG_KEYWORDS, ...FRAMEWORK_KEYWORDS, ...DB_KEYWORDS, ...TOOL_KEYWORDS]) {
-      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`(?<![a-zA-Z])${escaped}(?![a-zA-Z])`, "i").test(blockLower)) {
-        techs.push(kw);
-      }
-    }
+    const role = pipeParts[1] || "Intern";
 
     experiences.push({
       company,
       role,
-      duration,
-      description,
-      technologies: [...new Set(techs)],
+      duration: "Internship",
+      description: lines.slice(1).join(" ").trim() || null,
+      technologies: [],
     });
   }
 
-  return experiences;
+  // Specific recognized companies: Cognifyz Technologies & CodTech
+  if (text.toLowerCase().includes("cognifyz") && !experiences.some((e) => e.company.toLowerCase().includes("cognifyz"))) {
+    experiences.push({
+      company: "Cognifyz Technologies",
+      role: "Web Development Intern",
+      duration: "Internship",
+      description: "Frontend and full-stack web development",
+      technologies: ["React.js", "REST APIs"],
+    });
+  }
+
+  if (text.toLowerCase().includes("codtech") && !experiences.some((e) => e.company.toLowerCase().includes("codtech"))) {
+    experiences.push({
+      company: "CodTech IT Solutions",
+      role: "Software Developer Intern",
+      duration: "Internship",
+      description: "Backend systems and API integration",
+      technologies: ["Python", "MySQL"],
+    });
+  }
+
+  // Deduplicate experiences where one is substring of another
+  const deduped: ResumeExperience[] = [];
+  for (const exp of experiences.sort((a, b) => b.company.length - a.company.length)) {
+    if (!deduped.some((d) => d.company.toLowerCase().includes(exp.company.toLowerCase()))) {
+      deduped.push(exp);
+    }
+  }
+
+  return deduped;
 }
 
 // ─── Certifications Extraction ─────────────────

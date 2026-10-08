@@ -24,6 +24,8 @@ interface CareerRoadmapViewProps {
   extractedProfile: ExtractedProfile | null;
   onTakeExam?: () => void;
   darkMode?: boolean;
+  groqRoadmapSteps?: string[];
+  groqSummary?: string;
 }
 
 export type NodeStatus = "pending" | "learning" | "finished" | "skipped";
@@ -1122,6 +1124,8 @@ export const CareerRoadmapView: React.FC<CareerRoadmapViewProps> = ({
   extractedProfile,
   onTakeExam,
   darkMode = false,
+  groqRoadmapSteps,
+  groqSummary,
 }) => {
   const dk = darkMode;
 
@@ -1317,6 +1321,60 @@ export const CareerRoadmapView: React.FC<CareerRoadmapViewProps> = ({
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16 animate-in fade-in duration-300">
+      {/* ─── Groq LLM 3-Step Action Plan (if backend generated) ────────── */}
+      {groqRoadmapSteps && groqRoadmapSteps.length > 0 && (
+        <div className="paper-card p-5 sm:p-6 bg-[#FFFFFF] border-2 border-[#D6CEBE] rounded-2xl shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EFECE6]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#F3E8FF] text-[#7C3AED] flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-[#7C3AED]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-bold text-[#24201D]">
+                    Groq LLM 3-Step Action Plan
+                  </h3>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#F3E8FF] text-[#7C3AED] border border-[#DDD6FE] font-bold">
+                    llama-3.3-70b-versatile
+                  </span>
+                </div>
+                <p className="text-xs text-[#6E6659] mt-0.5">
+                  Direct action items to eliminate your highest-priority readiness gaps
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-mono font-medium text-[#2E6B47] bg-[#EDF7F0] border border-[#A3D9B1] px-2.5 py-1 rounded-full self-start sm:self-center">
+              ✓ AI Prioritized
+            </span>
+          </div>
+
+          {groqSummary && (
+            <p className="text-xs sm:text-sm text-[#4A4036] bg-[#FAF8F5] p-3.5 rounded-xl border border-[#E8E2D5] italic">
+              &ldquo;{groqSummary}&rdquo;
+            </p>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
+            {groqRoadmapSteps.map((step, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-xl border border-[#D8B4FE] bg-[#FAF5FF] flex flex-col justify-between space-y-3 shadow-2xs hover:shadow-xs transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold text-[#6B21A8] bg-[#E9D5FF] px-2 py-0.5 rounded-full">
+                    Action {idx + 1}
+                  </span>
+                  <CheckCircle2 className="w-4 h-4 text-[#7C3AED]" />
+                </div>
+                <p className="text-xs font-semibold text-[#24201D] leading-relaxed">
+                  {step.replace(/^\d+\.\s*/, "")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ─── Top Role Track Selector Tabs ─────────────────────────────────── */}
       <div className="paper-card p-4 sm:p-5 bg-[#FFFFFF] border border-[#D6CEBE] rounded-2xl shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E2D7] pb-3">

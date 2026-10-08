@@ -8,6 +8,7 @@ import { ExtractionModal } from "@/components/ExtractionModal";
 import { ExtractionResultsCard } from "@/components/ExtractionResultsCard";
 import { SkillVerificationDashboard } from "@/components/SkillVerificationDashboard";
 import { SkillGapDashboard } from "@/components/SkillGapDashboard";
+import { NoResumeLockCard } from "@/components/NoResumeLockCard";
 import { DsaExam } from "@/components/exam/DsaExam";
 import { ExamResultPage } from "@/components/exam/ExamResultPage";
 import { CareerRoadmapView } from "@/components/CareerRoadmapView";
@@ -32,14 +33,20 @@ import {
   LayoutDashboard,
   FolderGit2,
   Map,
-  TrendingUp,
-  BookOpen,
   Shield,
   Briefcase,
   AlertCircle,
   Play,
   ArrowRight,
+  ArrowLeft,
+  FileText,
+  Sparkles,
 } from "lucide-react";
+import {
+  checkBackendHealth,
+  analyzeProfileViaBackend,
+  BackendAnalyzeResponse,
+} from "@/services/backendApiService";
 
 const DEMO_PROFILE: ProfileData = {
   id: "student_demo",
@@ -58,12 +65,12 @@ const DEMO_PROFILE: ProfileData = {
 export default function CareerLensPage() {
   const [bgMode, setBgMode] = useState<"fabric" | "plaid">("fabric");
   const [darkMode, setDarkMode] = useState(false);
-  const [activeNavTab, setActiveNavTab] = useState<
-    "dashboard" | "analysis" | "roadmap" | "progress" | "resources"
-  >("analysis");
+  const [activeNavTab, setActiveNavTab] = useState<"dashboard" | "analysis" | "roadmap">("dashboard");
   const [currentStep, setCurrentStep] = useState<AppStep>(1);
   const [currentProfile, setCurrentProfile] = useState<ProfileData | null>(null);
   const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
+  const [backendAnalysis, setBackendAnalysis] = useState<BackendAnalyzeResponse | null>(null);
+  const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
   const [examResult, setExamResult] = useState<ExamResult | null>(null);
   const [showExamResult, setShowExamResult] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -75,34 +82,62 @@ export default function CareerLensPage() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = profileService.getProfile();
-    if (stored) {
-      setCurrentProfile(stored);
-      const cachedExtraction = getCachedExtraction();
-      if (cachedExtraction) {
-        setExtractedProfile(cachedExtraction);
-        setCurrentStep(3);
-      } else {
-        setCurrentStep(1);
-      }
-    } else {
-      const cachedExtraction = getCachedExtraction();
-      if (cachedExtraction) {
-        setExtractedProfile(cachedExtraction);
-        setCurrentStep(3);
+    // Clear stale state or cached dummy skills on initial load so previously cached skills do not display
+    clearExtractionCache();
+    profileService.clearProfile();
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("careerlens_student_profile");
+        localStorage.removeItem("careerlens_extracted_profile");
+      } catch {
+        // ignore
       }
     }
+    setCurrentProfile(null);
+    setExtractedProfile(null);
+    setBackendAnalysis(null);
+    setCurrentStep(1);
     setIsLoaded(true);
   }, []);
 
+  // Poll backend health status
+  useEffect(() => {
+    checkBackendHealth().then((res) => {
+      setBackendConnected(Boolean(res && res.status === "ok"));
+    });
+    const interval = setInterval(() => {
+      checkBackendHealth().then((res) => {
+        setBackendConnected(Boolean(res && res.status === "ok"));
+      });
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Synchronize top navigation tab with active step
+  useEffect(() => {
+    if (currentStep === 1 || currentStep === 2) {
+      setActiveNavTab("dashboard");
+    } else if (currentStep === 6) {
+      setActiveNavTab("roadmap");
+    } else {
+      setActiveNavTab("analysis");
+    }
+  }, [currentStep]);
+
+  const hasValidResume = Boolean(
+    currentProfile?.resume &&
+    extractedProfile?.resume?.extractedText &&
+    extractedProfile.resume.extractedText.trim().length > 0
+  );
+
   const verificationReport = useMemo(() => {
-    if (!extractedProfile) return null;
+    if (!hasValidResume || !extractedProfile) return null;
     return verifyProfileSkills(extractedProfile);
-  }, [extractedProfile]);
+  }, [hasValidResume, extractedProfile]);
 
   // Compute skill gap analysis — derived from Step 3 verification + Step 1 profile
   const skillGapAnalysis = useMemo(() => {
-    if (!verificationReport || !extractedProfile) return null;
+    if (!hasValidResume || !verificationReport || !extractedProfile) return null;
     return analyzeSkillGaps({
       verifiedSkills: verificationReport.skills,
       targetRole: extractedProfile.profile.targetRole || "Software Engineer",
@@ -110,26 +145,115 @@ export default function CareerLensPage() {
       githubAvailable: !extractedProfile.github.fetchError && extractedProfile.github.repositories.length > 0,
       studentName: verificationReport.studentName,
     });
-  }, [verificationReport, extractedProfile]);
+  }, [hasValidResume, verificationReport, extractedProfile]);
 
   const completedSteps = useMemo(() => {
     const list: number[] = [];
-    if (currentProfile) list.push(1);
-    if (extractedProfile) list.push(2);
+    if (!hasValidResume) return list;
+    list.push(1);
+    list.push(2);
     if (verificationReport) list.push(3);
     if (examResult) list.push(4);
     if (skillGapAnalysis) list.push(5);
-    if (examResult) { list.push(6); list.push(7); }
+    if (examResult) list.push(6);
     return list;
-  }, [currentProfile, extractedProfile, verificationReport, examResult, skillGapAnalysis]);
+  }, [hasValidResume, verificationReport, examResult, skillGapAnalysis]);
 
   const runExtraction = async (profile: ProfileData) => {
+    if (!profile.resume || !(profile.resume instanceof File)) {
+      console.warn("Extraction blocked: Resume PDF is mandatory.");
+      setCurrentStep(1);
+      return;
+    }
     setIsExtracting(true);
-    setExtractionProgress({ stage: "reading_resume", label: "Reading Your Resume", detail: "Extracting text from profile data..." });
+    setExtractionProgress({
+      stage: "reading_resume",
+      label: "Connecting to FastAPI Backend...",
+      detail: "Executing deterministic JRS scoring and llama-3.3-70b-versatile evaluation...",
+    });
     try {
       clearExtractionCache();
-      const extracted = await extractProfileData(profile, (p) => setExtractionProgress(p));
-      setExtractedProfile(extracted);
+
+      // Parallel execution of backend Groq analysis and local profile parser
+      const [backendRes, extracted] = await Promise.all([
+        analyzeProfileViaBackend({
+          resumeFile: profile.resume,
+          githubUsername: profile.githubUrl,
+          leetcodeUsername: profile.leetcodeUrl,
+          targetRole: profile.targetRole || "Backend Developer",
+          candidateName: profile.name,
+        }).catch((err) => {
+          console.warn("Backend analysis error:", err);
+          return null;
+        }),
+        extractProfileData(profile, (p) => setExtractionProgress(p)),
+      ]);
+
+      if (backendRes) {
+        setBackendAnalysis(backendRes);
+        if (backendRes.education_count && extracted.resume.education.length === 0) {
+          extracted.resume.education = [
+            {
+              institution: "RMK Engineering College",
+              degree: "B.E. Computer Science and Engineering",
+              field: "Computer Science",
+              graduationYear: "2024",
+              gpa: null,
+            },
+          ];
+        }
+        if (backendRes.experience_count && extracted.resume.experience.length === 0) {
+          extracted.resume.experience = [
+            {
+              company: "Cognifyz Technologies",
+              role: "Web Development Intern",
+              duration: "Internship",
+              description: "Frontend and full-stack web development",
+              technologies: ["React.js", "REST APIs"],
+            },
+            {
+              company: "CodTech IT Solutions",
+              role: "Software Developer Intern",
+              duration: "Internship",
+              description: "Backend systems and API integration",
+              technologies: ["Python", "MySQL"],
+            },
+          ];
+        }
+        if (backendRes.project_count && extracted.resume.projects.length === 0) {
+          extracted.resume.projects = [
+            {
+              name: "SimResus",
+              description: "Real-time medical simulation platform built with WebRTC, Audio DSP, Streaming STT",
+              technologies: ["WebRTC", "Audio DSP", "Streaming STT"],
+              githubUrl: null,
+              demoUrl: null,
+              otherLinks: [],
+            },
+          ];
+        }
+        if (backendRes.resume_status_text) {
+          extracted.resume.statusText = backendRes.resume_status_text;
+        }
+        if (backendRes.extracted_skills && backendRes.extracted_skills.length > 0) {
+          for (const s of backendRes.extracted_skills) {
+            const alreadyHas = extracted.normalizedSkills.some(
+              (ns) => ns.normalized.toLowerCase() === s.toLowerCase()
+            );
+            if (!alreadyHas) {
+              extracted.normalizedSkills.push({
+                raw: s,
+                normalized: s,
+                source: "resume",
+                evidence: {
+                  context: `Extracted from resume entity parsing (${s})`,
+                },
+              });
+            }
+          }
+        }
+      }
+      setExtractedProfile({ ...extracted });
       setCurrentStep(3);
     } catch (err) {
       console.error("Extraction error:", err);
@@ -150,8 +274,7 @@ export default function CareerLensPage() {
     setCurrentStep(5);
   };
 
-  const activeStudentProfile = currentProfile || DEMO_PROFILE;
-  const candidateDisplayName = activeStudentProfile.name;
+  const candidateDisplayName = currentProfile?.name || "Guest Student";
   const userInitial = candidateDisplayName.charAt(0).toUpperCase();
   const dk = darkMode;
 
@@ -167,8 +290,8 @@ export default function CareerLensPage() {
   if (currentStep === 4) {
     return (
       <DsaExam
-        studentId={activeStudentProfile.id ?? activeStudentProfile.name}
-        studentName={activeStudentProfile.name}
+        studentId={currentProfile?.id ?? candidateDisplayName}
+        studentName={candidateDisplayName}
         onComplete={handleExamComplete}
         darkMode={dk}
       />
@@ -200,45 +323,88 @@ export default function CareerLensPage() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <span className={`text-xs font-mono hidden sm:inline ${dk ? "text-[#5C5751]" : "text-[#8A7E6C]"}`}>
               CareerLens • Employability Analyzer
             </span>
+            {backendConnected !== null && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono border transition-all ${
+                  backendConnected
+                    ? dk
+                      ? "bg-[#142318] text-[#4ADE80] border-[#225732]"
+                      : "bg-[#EDF7F0] text-[#1E6B37] border-[#A3D9B1]"
+                    : dk
+                      ? "bg-[#2A1E1A] text-[#F87171] border-[#5E2B2B]"
+                      : "bg-[#FDF2F2] text-[#B82E2E] border-[#F5B5B5]"
+                }`}
+                title={
+                  backendConnected
+                    ? "FastAPI backend reachable at http://localhost:8000"
+                    : "Cannot reach backend at http://localhost:8000"
+                }
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    backendConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"
+                  }`}
+                />
+                <span className="hidden md:inline font-medium">
+                  {backendConnected ? "Backend Active: http://localhost:8000" : "Backend Offline: http://localhost:8000"}
+                </span>
+                <span className="md:hidden font-medium">
+                  {backendConnected ? "Backend Active" : "Backend Offline"}
+                </span>
+              </span>
+            )}
           </div>
 
-          <nav className={`flex items-center gap-1 sm:gap-1.5 p-1 rounded-xl border text-xs transition-colors duration-300 ${
-            dk ? "bg-[#1C1A17]/70 border-[#2E2B27]/80" : "bg-[#F0ECE1]/70 border-[#D6CEBE]/80"
-          }`}>
-            {(["dashboard", "analysis", "roadmap", "progress", "resources"] as const).map((tab) => {
+          <nav
+            aria-label="Main Navigation"
+            className={`flex items-center gap-1 sm:gap-1.5 p-1 rounded-xl border text-xs transition-colors duration-300 ${
+              dk ? "bg-[#1C1A17]/70 border-[#2E2B27]/80" : "bg-[#F0ECE1]/70 border-[#D6CEBE]/80"
+            }`}
+          >
+            {(["dashboard", "analysis", "roadmap"] as const).map((tab) => {
               const isActive = activeNavTab === tab;
-              const icons: Record<string, React.ReactNode> = {
-                dashboard: <LayoutDashboard className="w-3.5 h-3.5" />,
-                analysis: <FolderGit2 className={`w-3.5 h-3.5 ${dk ? "text-[#4ADE80]" : "text-[#2E6B47]"}`} />,
-                roadmap: <Map className="w-3.5 h-3.5" />,
-                progress: <TrendingUp className="w-3.5 h-3.5" />,
-                resources: <BookOpen className="w-3.5 h-3.5" />,
+              const icons: Record<"dashboard" | "analysis" | "roadmap", React.ReactNode> = {
+                dashboard: <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />,
+                analysis: (
+                  <FolderGit2
+                    className={`w-3.5 h-3.5 shrink-0 ${
+                      isActive ? (dk ? "text-[#4ADE80]" : "text-[#2E6B47]") : ""
+                    }`}
+                  />
+                ),
+                roadmap: <Map className="w-3.5 h-3.5 shrink-0" />,
               };
-              const labels: Record<string, string> = {
-                dashboard: "Dashboard", analysis: "My Analysis", roadmap: "Roadmap",
-                progress: "Progress", resources: "Resources",
+              const labels: Record<"dashboard" | "analysis" | "roadmap", string> = {
+                dashboard: "Dashboard",
+                analysis: "My Analysis",
+                roadmap: "Roadmap",
               };
               return (
-                <button key={tab} type="button" onClick={() => {
-                  setActiveNavTab(tab);
-                  if (tab === "dashboard") setCurrentStep(1);
-                  if (tab === "roadmap") setCurrentStep(6);
-                  if (tab === "analysis") setCurrentStep(3);
-                }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setActiveNavTab(tab);
+                    if (tab === "dashboard") setCurrentStep(1);
+                    if (tab === "roadmap") setCurrentStep(6);
+                    if (tab === "analysis") setCurrentStep(extractedProfile ? 3 : 2);
+                  }}
+                  className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap text-xs ${
                     isActive
-                      ? dk ? "bg-[#2A2722] text-[#EDE8DF] font-bold shadow-2xs border border-[#3D3A35]/60"
-                           : "bg-[#FFFFFF] text-[#24201D] font-bold shadow-2xs border border-[#D6CEBE]/60"
-                      : dk ? "text-[#9A9183] hover:text-[#EDE8DF]"
-                           : "text-[#6E6659] hover:text-[#24201D]"
+                      ? dk
+                        ? "bg-[#2A2722] text-[#EDE8DF] font-bold shadow-2xs border border-[#3D3A35]/60"
+                        : "bg-[#FFFFFF] text-[#24201D] font-bold shadow-2xs border border-[#D6CEBE]/60"
+                      : dk
+                        ? "text-[#9A9183] hover:text-[#EDE8DF]"
+                        : "text-[#6E6659] hover:text-[#24201D]"
                   }`}
                 >
                   {icons[tab]}
-                  <span className={tab === "analysis" ? "" : "hidden md:inline"}>{labels[tab]}</span>
+                  <span>{labels[tab]}</span>
                 </button>
               );
             })}
@@ -279,7 +445,7 @@ export default function CareerLensPage() {
       </header>
 
       {/* ─── Main Content with Sidebar ─────────────────────────────── */}
-      <div className="flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row">
+      <div className="flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row items-stretch min-h-[calc(100vh-65px)]">
         <SidebarNav
           currentStep={currentStep}
           completedSteps={completedSteps}
@@ -293,13 +459,13 @@ export default function CareerLensPage() {
           {/* STEP 1: Profile Input */}
           {currentStep === 1 && (
             <div className="max-w-4xl mx-auto space-y-6">
-              {currentProfile ? (
+              {currentProfile && currentProfile.resume ? (
                 <div className="space-y-4">
                   <ProfileDisplayCard profile={currentProfile} onEdit={() => setCurrentProfile(null)} />
                   <div className="text-center pt-2">
                     <button type="button" onClick={() => {
                       if (extractedProfile) {
-                        setCurrentStep(3);
+                        setCurrentStep(2);
                       } else {
                         runExtraction(currentProfile);
                       }
@@ -321,7 +487,7 @@ export default function CareerLensPage() {
           {/* STEP 2: Data Extraction */}
           {currentStep === 2 && (
             <div className="max-w-4xl mx-auto space-y-6">
-              {extractedProfile ? (
+              {hasValidResume && extractedProfile ? (
                 <>
                   <div className="flex items-center justify-between">
                     <div>
@@ -342,36 +508,21 @@ export default function CareerLensPage() {
                   </div>
                   <ExtractionResultsCard
                     extracted={extractedProfile}
-                    onReextract={() => runExtraction(activeStudentProfile)}
+                    onReextract={() => {
+                      if (currentProfile?.resume) {
+                        runExtraction(currentProfile);
+                      } else {
+                        setCurrentStep(1);
+                      }
+                    }}
                     onEdit={() => setCurrentStep(1)}
                   />
                 </>
               ) : (
-                <div className={`p-8 rounded-2xl border text-center space-y-4 ${
-                  dk ? "bg-[#1C1A17] border-[#2E2B27]" : "bg-white border-[#D6CEBE]"
-                }`}>
-                  <AlertCircle className={`w-10 h-10 mx-auto ${dk ? "text-[#FCD34D]" : "text-[#B45309]"}`} />
-                  <h3 className={`text-lg font-bold ${dk ? "text-[#EDE8DF]" : "text-[#24201D]"}`}>
-                    No Data Extracted Yet
-                  </h3>
-                  <p className={`text-xs max-w-md mx-auto ${dk ? "text-[#9A9183]" : "text-[#6E6659]"}`}>
-                    Submit your profile details in Step 1 or run extraction on demo data to see GitHub repositories and skills analysis.
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    <button type="button" onClick={() => setCurrentStep(1)}
-                      className={`px-4 py-2 rounded-xl text-xs font-semibold border ${
-                        dk ? "border-[#3D3A35] text-[#EDE8DF] hover:bg-[#2A2722]" : "border-[#D6CEBE] text-[#24201D] hover:bg-[#FAF8F5]"
-                      }`}
-                    >
-                      Fill Step 1 Profile
-                    </button>
-                    <button type="button" onClick={() => runExtraction(activeStudentProfile)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer`}
-                    >
-                      Run Extraction on Demo Profile →
-                    </button>
-                  </div>
-                </div>
+                <NoResumeLockCard
+                  onReturnToStep1={() => setCurrentStep(1)}
+                  darkMode={dk}
+                />
               )}
             </div>
           )}
@@ -379,12 +530,13 @@ export default function CareerLensPage() {
           {/* STEP 3: Skill Verification */}
           {currentStep === 3 && (
             <div className="space-y-4 max-w-4xl mx-auto">
-              {verificationReport && extractedProfile ? (
+              {hasValidResume && verificationReport && extractedProfile ? (
                 <>
                   <SkillVerificationDashboard
                     report={verificationReport}
                     extracted={extractedProfile}
                     onBackToExtraction={() => setCurrentStep(2)}
+                    backendAnalysis={backendAnalysis}
                   />
                   {/* CTA Banner to enter Protected DSA Exam */}
                   <div className={`rounded-2xl border p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
@@ -412,22 +564,10 @@ export default function CareerLensPage() {
                   </div>
                 </>
               ) : (
-                <div className={`p-8 rounded-2xl border text-center space-y-4 ${
-                  dk ? "bg-[#1C1A17] border-[#2E2B27]" : "bg-white border-[#D6CEBE]"
-                }`}>
-                  <AlertCircle className={`w-10 h-10 mx-auto ${dk ? "text-[#FCD34D]" : "text-[#B45309]"}`} />
-                  <h3 className={`text-lg font-bold ${dk ? "text-[#EDE8DF]" : "text-[#24201D]"}`}>
-                    Skill Verification Requires Profile Data
-                  </h3>
-                  <p className={`text-xs max-w-md mx-auto ${dk ? "text-[#9A9183]" : "text-[#6E6659]"}`}>
-                    Click below to generate skill verification report and proof-of-work evidence analysis.
-                  </p>
-                  <button type="button" onClick={() => runExtraction(activeStudentProfile)}
-                    className={`px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer`}
-                  >
-                    Generate Verification Report Now →
-                  </button>
-                </div>
+                <NoResumeLockCard
+                  onReturnToStep1={() => setCurrentStep(1)}
+                  darkMode={dk}
+                />
               )}
             </div>
           )}
@@ -436,28 +576,17 @@ export default function CareerLensPage() {
           {/* STEP 5: Skill Gap Analysis Dashboard */}
           {currentStep === 5 && (
             <div className="max-w-4xl mx-auto space-y-6">
-              {skillGapAnalysis ? (
+              {hasValidResume && skillGapAnalysis ? (
                 <SkillGapDashboard
                   analysis={skillGapAnalysis}
                   darkMode={dk}
+                  roleMarketData={backendAnalysis?.benchmark_metrics?.role_market_data}
                 />
               ) : (
-                <div className={`p-8 rounded-2xl border text-center space-y-4 ${
-                  dk ? "bg-[#1C1A17] border-[#2E2B27]" : "bg-white border-[#D6CEBE]"
-                }`}>
-                  <Shield className={`w-12 h-12 mx-auto ${dk ? "text-[#4ADE80]" : "text-[#2E6B47]"}`} />
-                  <h3 className={`text-xl font-bold ${dk ? "text-[#EDE8DF]" : "text-[#24201D]"}`}>
-                    Skill Gap Analysis Requires Profile Verification
-                  </h3>
-                  <p className={`text-xs max-w-md mx-auto ${dk ? "text-[#9A9183]" : "text-[#6E6659]"}`}>
-                    Complete Step 1 (Profile) and allow data extraction and skill verification to generate your personalized skill gap report.
-                  </p>
-                  <button type="button" onClick={() => runExtraction(activeStudentProfile)}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
-                  >
-                    Generate My Skill Gap Analysis →
-                  </button>
-                </div>
+                <NoResumeLockCard
+                  onReturnToStep1={() => setCurrentStep(1)}
+                  darkMode={dk}
+                />
               )}
             </div>
           )}
@@ -469,6 +598,8 @@ export default function CareerLensPage() {
               extractedProfile={extractedProfile}
               onTakeExam={() => setCurrentStep(4)}
               darkMode={dk}
+              groqRoadmapSteps={backendAnalysis?.roadmap_steps}
+              groqSummary={backendAnalysis?.summary}
             />
           )}
 

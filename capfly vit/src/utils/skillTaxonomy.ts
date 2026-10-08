@@ -45,6 +45,8 @@ const CATEGORY_MAP: Record<string, SkillCategory> = {
   html: "Frontend",
   css: "Frontend",
   react: "Frontend",
+  "react.js": "Frontend",
+  reactjs: "Frontend",
   angular: "Frontend",
   vue: "Frontend",
   "vue.js": "Frontend",
@@ -93,6 +95,7 @@ const CATEGORY_MAP: Record<string, SkillCategory> = {
   websocket: "Backend",
   fastify: "Backend",
   nestjs: "Backend",
+  webrtc: "Backend",
   "ruby on rails": "Backend",
   rails: "Backend",
   ".net": "Backend",
@@ -104,6 +107,7 @@ const CATEGORY_MAP: Record<string, SkillCategory> = {
 
   // Databases
   mysql: "Database",
+  dbms: "Database",
   postgresql: "Database",
   postgres: "Database",
   mongodb: "Database",
@@ -165,6 +169,8 @@ const CATEGORY_MAP: Record<string, SkillCategory> = {
   tableau: "Data & AI",
   "power bi": "Data & AI",
   excel: "Data & AI",
+  "audio dsp": "Data & AI",
+  "streaming stt": "Data & AI",
 
   // Cloud & DevOps
   aws: "Cloud & DevOps",
@@ -192,6 +198,7 @@ const CATEGORY_MAP: Record<string, SkillCategory> = {
   // Software Engineering
   git: "Software Engineering",
   github: "Software Engineering",
+  "git / github": "Software Engineering",
   gitlab: "Software Engineering",
   bitbucket: "Software Engineering",
   jira: "Software Engineering",
@@ -203,6 +210,8 @@ const CATEGORY_MAP: Record<string, SkillCategory> = {
   "data structures": "Software Engineering",
   dsa: "Software Engineering",
   algorithms: "Software Engineering",
+  "data structures & algorithms (leetcode)": "Software Engineering",
+  "computer networks": "Software Engineering",
   "system design": "Software Engineering",
   jest: "Software Engineering",
   vitest: "Software Engineering",
