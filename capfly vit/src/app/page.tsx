@@ -130,7 +130,10 @@ export default function LandingPage() {
 
           {/* Large Serif Display Heading */}
           <h1 className="font-serif-display text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#141413] leading-[1.08] max-w-3xl mx-auto">
-            The Deterministic Employability Engine.
+            The Deterministic{" "}
+            <span className="bg-gradient-to-r from-[#8C4F1F] via-[#D89445] to-[#783912] bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(216,148,69,0.25)]">
+              Employability Engine.
+            </span>
           </h1>
 
           {/* Subtitle */}
@@ -185,13 +188,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Section 2: "The Engine & Verification Architecture" (Dark Bento Card) ─── */}
-      <section id="architecture" className="py-16 sm:py-20 px-4 sm:px-6">
+      {/* ─── Section 2: "The Engine & Verification Architecture" (Dark Bento Card with Classical Tapestry Frame) ─── */}
+      <section id="architecture" className="py-16 sm:py-24 px-4 sm:px-6 relative">
         <div className="max-w-6xl mx-auto">
-          {/* Deep Forest-Green / Slate Bento Container */}
-          <div className="bg-[#18231F] text-[#EDE8DF] border border-[#273832] rounded-3xl p-6 sm:p-10 lg:p-12 shadow-xl relative overflow-hidden">
-            {/* Top Card Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#283832] pb-8">
+          {/* Classical Tapestry Canvas Outer Frame (matches Moative Image 2) */}
+          <div
+            className="rounded-[28px] sm:rounded-[36px] p-2.5 sm:p-5 lg:p-7 shadow-2xl border border-[#D6CEBE]/80 relative overflow-hidden bg-cover bg-center"
+            style={{ backgroundImage: "url('/bento-tapestry-bg.jpg')" }}
+          >
+            {/* Ambient vignette overlay to ensure elegant contrast */}
+            <div className="absolute inset-0 bg-[#0F1714]/25 backdrop-blur-[1px]" />
+
+            {/* Deep Forest-Green / Slate Bento Container */}
+            <div className="bg-[#14201B]/95 text-[#EDE8DF] border border-[#2B3E36] rounded-2xl sm:rounded-3xl p-6 sm:p-10 lg:p-12 shadow-2xl backdrop-blur-md relative z-10 overflow-hidden">
+              {/* Top Card Header */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#283832] pb-8">
               <div>
                 <span className="text-[10px] uppercase font-mono tracking-widest text-[#66B085] font-semibold block mb-2">
                   System Topology & Specification
@@ -360,7 +371,8 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* ─── Section 3: "Ingest. Audit. Remediate." (3-Column Editorial Cards) ─── */}
       <section id="methodology" className="py-16 sm:py-24 px-4 sm:px-6 bg-[#F5F2EB] border-y border-[#E5DFD5]">
@@ -380,163 +392,180 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Card 01: Ingest */}
-            <div className="bg-[#FFFFFF] border border-[#E5DFD5] rounded-2xl p-6 sm:p-7 shadow-2xs flex flex-col justify-between hover:shadow-xs transition-shadow">
-              <div className="space-y-4">
-                {/* Subtle Landscape Geometric Header Art */}
-                <div className="w-full h-24 rounded-xl bg-gradient-to-b from-[#F2ECE1] to-[#E9E1D2] border border-[#DCD5C7] p-3 flex flex-col justify-between relative overflow-hidden">
-                  <div className="flex items-center justify-between relative z-10">
-                    <span className="text-[10px] font-mono font-bold text-[#6E6659]">BOUNDED INGEST</span>
-                    <FileText className="w-4 h-4 text-[#6E6659]" />
+            <div className="bg-[#FFFFFF] border border-[#E5DFD5] rounded-2xl overflow-hidden shadow-2xs flex flex-col justify-between hover:shadow-md transition-all group">
+              <div>
+                {/* Full-width editorial artwork (matches Image 3) */}
+                <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-[#E9E1D2]">
+                  <img
+                    src="/editorial-ingest.jpg"
+                    alt="Bounded Ingest & Zero-Hallucination Extraction"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-[#141413]/75 backdrop-blur-xs text-[10px] font-mono font-semibold text-[#FAF8F5] tracking-wider uppercase">
+                    Stage 01 • Ingest
                   </div>
-                  {/* Stylized topography lines */}
-                  <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 240 80" preserveAspectRatio="none">
-                    <path d="M0,60 Q60,30 120,55 T240,40 L240,80 L0,80 Z" fill="#8A7E6C" />
-                    <path d="M0,70 Q80,45 160,65 T240,55 L240,80 L0,80 Z" fill="#6E6659" />
-                  </svg>
-                  <span className="text-[10px] font-mono text-[#8A7E6C] relative z-10">Zero-Hallucination Guardrails</span>
                 </div>
 
-                <div>
-                  <div className="text-2xl font-serif-display font-bold text-[#141413]">
-                    01 Ingest.
+                <div className="p-6 sm:p-7 space-y-4">
+                  <div>
+                    <span className="text-[11px] font-mono font-bold text-[#A35922] uppercase tracking-wider block mb-1">
+                      01
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl font-serif-display font-bold text-[#141413]">
+                      Ingest.
+                    </h3>
+                    <h4 className="text-xs font-mono font-semibold text-[#6E6659] uppercase tracking-wider mt-1">
+                      Strict Resume-First Extraction
+                    </h4>
                   </div>
-                  <h4 className="text-xs font-mono font-semibold text-[#6E6659] uppercase tracking-wider mt-1">
-                    Strict Resume-First Extraction
-                  </h4>
-                </div>
 
-                <p className="text-xs text-[#524E48] leading-relaxed">
-                  Candidate onboarding enforces mandatory PDF upload before any downstream inspection triggers.
-                  Entity parser extracts academic records, claimed frameworks, and public repository links without
-                  mock fallback.
-                </p>
+                  <p className="text-xs text-[#524E48] leading-relaxed">
+                    Candidate onboarding enforces mandatory PDF upload before any downstream inspection triggers.
+                    Entity parser extracts academic records, claimed frameworks, and public repository links without
+                    mock fallback.
+                  </p>
 
-                <div className="space-y-2 pt-2 border-t border-[#F0ECE1] text-[11px] font-mono text-[#6E6659]">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Boundary-checked PDF entity parser</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Enforced Step 1-2 lock guards</span>
+                  <div className="space-y-2 pt-2 border-t border-[#F0ECE1] text-[11px] font-mono text-[#6E6659]">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Boundary-checked PDF entity parser</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Enforced Step 1-2 lock guards</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6 mt-4 border-t border-[#E5DFD5]">
-                <Link
-                  href="/app"
-                  className="text-xs font-semibold text-[#141413] hover:text-[#2E6B47] inline-flex items-center gap-1.5 group"
-                >
-                  <span>Upload & Test Ingest</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </Link>
+              <div className="p-6 sm:p-7 pt-0">
+                <div className="pt-4 border-t border-[#E5DFD5]">
+                  <Link
+                    href="/app"
+                    className="text-xs font-semibold text-[#141413] hover:text-[#2E6B47] inline-flex items-center gap-1.5 group/link"
+                  >
+                    <span>Upload & Test Ingest</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
               </div>
             </div>
 
             {/* Card 02: Audit */}
-            <div className="bg-[#FFFFFF] border border-[#E5DFD5] rounded-2xl p-6 sm:p-7 shadow-2xs flex flex-col justify-between hover:shadow-xs transition-shadow">
-              <div className="space-y-4">
-                {/* Subtle Landscape Geometric Header Art */}
-                <div className="w-full h-24 rounded-xl bg-gradient-to-b from-[#E7EFE9] to-[#D5E5DA] border border-[#BFD5C6] p-3 flex flex-col justify-between relative overflow-hidden">
-                  <div className="flex items-center justify-between relative z-10">
-                    <span className="text-[10px] font-mono font-bold text-[#2E6B47]">CROSS-AUDIT ENGINE</span>
-                    <GitCommit className="w-4 h-4 text-[#2E6B47]" />
+            <div className="bg-[#FFFFFF] border border-[#E5DFD5] rounded-2xl overflow-hidden shadow-2xs flex flex-col justify-between hover:shadow-md transition-all group">
+              <div>
+                {/* Full-width editorial artwork (matches Image 3) */}
+                <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-[#D5E5DA]">
+                  <img
+                    src="/editorial-audit.jpg"
+                    alt="Cross-Audit Telemetry Engine"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-[#141413]/75 backdrop-blur-xs text-[10px] font-mono font-semibold text-[#FAF8F5] tracking-wider uppercase">
+                    Stage 02 • Audit
                   </div>
-                  {/* Stylized code cadence frequency curve */}
-                  <svg className="absolute inset-0 w-full h-full opacity-35" viewBox="0 0 240 80" preserveAspectRatio="none">
-                    <path d="M0,50 Q40,20 80,60 T160,35 T240,45 L240,80 L0,80 Z" fill="#2E6B47" />
-                  </svg>
-                  <span className="text-[10px] font-mono text-[#2E6B47] relative z-10">Live GitHub & LeetCode APIs</span>
                 </div>
 
-                <div>
-                  <div className="text-2xl font-serif-display font-bold text-[#141413]">
-                    02 Audit.
+                <div className="p-6 sm:p-7 space-y-4">
+                  <div>
+                    <span className="text-[11px] font-mono font-bold text-[#2E6B47] uppercase tracking-wider block mb-1">
+                      02
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl font-serif-display font-bold text-[#141413]">
+                      Audit.
+                    </h3>
+                    <h4 className="text-xs font-mono font-semibold text-[#2E6B47] uppercase tracking-wider mt-1">
+                      Proof vs. Assertion Verification
+                    </h4>
                   </div>
-                  <h4 className="text-xs font-mono font-semibold text-[#2E6B47] uppercase tracking-wider mt-1">
-                    Proof vs. Assertion Verification
-                  </h4>
-                </div>
 
-                <p className="text-xs text-[#524E48] leading-relaxed">
-                  Every listed skill is cross-checked against actual public source trees, AST files, commit streak
-                  cadence, and LeetCode algorithmic complexity. Claims without telemetry proof are flagged unverified.
-                </p>
+                  <p className="text-xs text-[#524E48] leading-relaxed">
+                    Every listed skill is cross-checked against actual public source trees, AST files, commit streak
+                    cadence, and LeetCode algorithmic complexity. Claims without telemetry proof are flagged unverified.
+                  </p>
 
-                <div className="space-y-2 pt-2 border-t border-[#F0ECE1] text-[11px] font-mono text-[#6E6659]">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Real-time GitHub repository inspection</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Proctored DSA integrity assessment</span>
+                  <div className="space-y-2 pt-2 border-t border-[#F0ECE1] text-[11px] font-mono text-[#6E6659]">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Real-time GitHub repository inspection</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Proctored DSA integrity assessment</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6 mt-4 border-t border-[#E5DFD5]">
-                <Link
-                  href="/app"
-                  className="text-xs font-semibold text-[#141413] hover:text-[#2E6B47] inline-flex items-center gap-1.5 group"
-                >
-                  <span>Explore Verification Grid</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </Link>
+              <div className="p-6 sm:p-7 pt-0">
+                <div className="pt-4 border-t border-[#E5DFD5]">
+                  <Link
+                    href="/app"
+                    className="text-xs font-semibold text-[#141413] hover:text-[#2E6B47] inline-flex items-center gap-1.5 group/link"
+                  >
+                    <span>Explore Verification Grid</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
               </div>
             </div>
 
             {/* Card 03: Remediate */}
-            <div className="bg-[#FFFFFF] border border-[#E5DFD5] rounded-2xl p-6 sm:p-7 shadow-2xs flex flex-col justify-between hover:shadow-xs transition-shadow">
-              <div className="space-y-4">
-                {/* Subtle Landscape Geometric Header Art */}
-                <div className="w-full h-24 rounded-xl bg-gradient-to-b from-[#EBF0F7] to-[#D7E3F2] border border-[#C2D4E8] p-3 flex flex-col justify-between relative overflow-hidden">
-                  <div className="flex items-center justify-between relative z-10">
-                    <span className="text-[10px] font-mono font-bold text-[#2563EB]">MARKET REMEDIATION</span>
-                    <TrendingUp className="w-4 h-4 text-[#2563EB]" />
+            <div className="bg-[#FFFFFF] border border-[#E5DFD5] rounded-2xl overflow-hidden shadow-2xs flex flex-col justify-between hover:shadow-md transition-all group">
+              <div>
+                {/* Full-width editorial artwork (matches Image 3) */}
+                <div className="relative h-56 sm:h-64 w-full overflow-hidden bg-[#C2D4E8]">
+                  <img
+                    src="/editorial-remediate.jpg"
+                    alt="Market-Weighted Remediation Academy"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-[#141413]/75 backdrop-blur-xs text-[10px] font-mono font-semibold text-[#FAF8F5] tracking-wider uppercase">
+                    Stage 03 • Remediate
                   </div>
-                  {/* Stylized milestone staircase curve */}
-                  <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 240 80" preserveAspectRatio="none">
-                    <path d="M0,70 L60,70 L60,50 L140,50 L140,30 L240,30 L240,80 L0,80 Z" fill="#2563EB" />
-                  </svg>
-                  <span className="text-[10px] font-mono text-[#2563EB] relative z-10">Empirical Demand Roadmaps</span>
                 </div>
 
-                <div>
-                  <div className="text-2xl font-serif-display font-bold text-[#141413]">
-                    03 Remediate.
+                <div className="p-6 sm:p-7 space-y-4">
+                  <div>
+                    <span className="text-[11px] font-mono font-bold text-[#1E5B99] uppercase tracking-wider block mb-1">
+                      03
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl font-serif-display font-bold text-[#141413]">
+                      Remediate.
+                    </h3>
+                    <h4 className="text-xs font-mono font-semibold text-[#1E5B99] uppercase tracking-wider mt-1">
+                      Market-Weighted Remedial Sprint
+                    </h4>
                   </div>
-                  <h4 className="text-xs font-mono font-semibold text-[#2563EB] uppercase tracking-wider mt-1">
-                    Market-Weighted Remedial Sprint
-                  </h4>
-                </div>
 
-                <p className="text-xs text-[#524E48] leading-relaxed">
-                  Identified blindspots are mapped to real-time hiring demand frequency (SQL 86%, Docker 78%, APIs 92%).
-                  Generates an actionable 4-week structured sprint complete with curated documentation and project targets.
-                </p>
+                  <p className="text-xs text-[#524E48] leading-relaxed">
+                    Identified blindspots are mapped to real-time hiring demand frequency (SQL 86%, Docker 78%, APIs 92%).
+                    Generates an actionable 4-week structured sprint complete with curated documentation and project targets.
+                  </p>
 
-                <div className="space-y-2 pt-2 border-t border-[#F0ECE1] text-[11px] font-mono text-[#6E6659]">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Role-weighted gap priority ordering</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Structured 4-week roadmap progression</span>
+                  <div className="space-y-2 pt-2 border-t border-[#F0ECE1] text-[11px] font-mono text-[#6E6659]">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Role-weighted gap priority ordering</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Structured 4-week roadmap progression</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6 mt-4 border-t border-[#E5DFD5]">
-                <Link
-                  href="/app"
-                  className="text-xs font-semibold text-[#141413] hover:text-[#2E6B47] inline-flex items-center gap-1.5 group"
-                >
-                  <span>View Sample Roadmap</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </Link>
+              <div className="p-6 sm:p-7 pt-0">
+                <div className="pt-4 border-t border-[#E5DFD5]">
+                  <Link
+                    href="/app"
+                    className="text-xs font-semibold text-[#141413] hover:text-[#2E6B47] inline-flex items-center gap-1.5 group/link"
+                  >
+                    <span>View Sample Roadmap</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

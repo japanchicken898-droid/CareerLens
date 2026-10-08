@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { SidebarNav, AppStep } from "@/components/SidebarNav";
 import { InputSection } from "@/components/InputSection";
 import { ProfileDisplayCard } from "@/components/ProfileDisplayCard";
@@ -41,6 +42,7 @@ import {
   ArrowLeft,
   FileText,
   Sparkles,
+  Compass,
 } from "lucide-react";
 import {
   checkBackendHealth,
@@ -442,6 +444,20 @@ export default function CareerLensPage() {
               </span>
               <ChevronDown className={`w-3.5 h-3.5 ${dk ? "text-[#5C5751]" : "text-[#8A7E6C]"}`} />
             </div>
+
+            <Link
+              href="/"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-2xs transition-all cursor-pointer ${
+                dk
+                  ? "bg-[#1E1C19] hover:bg-[#2A2722] text-[#EDE8DF] border-[#2E2B27]"
+                  : "bg-[#FFFFFF] hover:bg-[#FAF8F5] text-[#24201D] border-[#D6CEBE]"
+              }`}
+              title="Return to CareerLens Gateway Landing Page"
+            >
+              <Compass className="w-3.5 h-3.5 text-[#2E6B47]" />
+              <span className="hidden sm:inline">Return to Gateway</span>
+              <span className="sm:hidden">Gateway</span>
+            </Link>
           </div>
         </div>
       </header>
