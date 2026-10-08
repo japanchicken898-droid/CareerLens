@@ -480,75 +480,68 @@ export const InputSection: React.FC<InputSectionProps> = ({
                   )}
                 </div>
 
-                {/* 4. LinkedIn Profile URL & 5. Portfolio Website URL (Side-by-side grid) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                  {/* LinkedIn Profile URL */}
-                  <div>
-                    <label className="block text-xs font-medium text-[#4A4036] mb-1 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <LinkedinIcon className="w-3.5 h-3.5 text-[#0A66C2]" />
-                        <span>LinkedIn Profile URL</span>
-                      </span>
-                      <span className="text-[10px] text-[#8A7E6C] font-mono">Optional</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="url"
-                        value={linkedinUrl}
-                        onChange={(e) => {
-                          setLinkedinUrl(e.target.value);
-                          if (errors.linkedinUrl) setErrors((prev) => ({ ...prev, linkedinUrl: undefined }));
-                        }}
-                        placeholder="https://linkedin.com/in/username"
-                        className={`w-full pl-3.5 pr-20 py-2.5 rounded-xl border ${
-                          errors.linkedinUrl ? "border-[#991B1B] bg-red-50/20" : "border-[#D6CEBE] bg-[#FAF8F5]"
-                        } text-sm text-[#24201D] placeholder:text-[#A89E8D] focus:outline-none focus:border-[#24201D] focus:bg-[#FFFFFF] transition-all font-mono text-xs`}
-                      />
-                      <span className="absolute right-2.5 top-2.5 text-[9px] uppercase font-mono font-semibold text-[#0A66C2] bg-[#EBF3FB] border border-[#BFDBFE] px-1.5 py-0.5 rounded">
-                        NETWORK
-                      </span>
-                    </div>
-                    {errors.linkedinUrl && (
-                      <p className="text-xs text-[#991B1B] font-medium mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>{errors.linkedinUrl}</span>
-                      </p>
-                    )}
+                {/* 4. LinkedIn URL / Export Summary (Full-width, same style as GitHub/LeetCode) */}
+                <div>
+                  <label className="block text-xs font-medium text-[#4A4036] mb-1 flex items-center gap-1.5">
+                    <LinkedinIcon className="w-3.5 h-3.5 text-[#0A66C2]" />
+                    <span>LinkedIn URL / Export Summary</span>
+                    <span className="text-[10px] text-[#8A7E6C] font-mono ml-auto">Optional</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={linkedinUrl}
+                      onChange={(e) => {
+                        setLinkedinUrl(e.target.value);
+                        if (errors.linkedinUrl) setErrors((prev) => ({ ...prev, linkedinUrl: undefined }));
+                      }}
+                      placeholder="linkedin.com/in/..."
+                      className={`w-full pl-3.5 pr-24 py-2.5 rounded-xl border ${
+                        errors.linkedinUrl ? "border-[#991B1B] bg-red-50/20" : "border-[#D6CEBE] bg-[#FAF8F5]"
+                      } text-sm text-[#24201D] placeholder:text-[#A89E8D] focus:outline-none focus:border-[#24201D] focus:bg-[#FFFFFF] transition-all font-mono text-xs sm:text-sm`}
+                    />
+                    <span className="absolute right-3 top-2.5 text-[10px] uppercase font-mono font-semibold text-[#0A66C2] bg-[#EBF3FB] border border-[#BFDBFE] px-1.5 py-0.5 rounded">
+                      NETWORK
+                    </span>
                   </div>
+                  {errors.linkedinUrl && (
+                    <p className="text-xs text-[#991B1B] font-medium mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{errors.linkedinUrl}</span>
+                    </p>
+                  )}
+                </div>
 
-                  {/* Portfolio Website URL */}
-                  <div>
-                    <label className="block text-xs font-medium text-[#4A4036] mb-1 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <Globe className="w-3.5 h-3.5 text-[#2E6B47]" />
-                        <span>Portfolio Website</span>
-                      </span>
-                      <span className="text-[10px] text-[#8A7E6C] font-mono">Optional</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="url"
-                        value={portfolioUrl}
-                        onChange={(e) => {
-                          setPortfolioUrl(e.target.value);
-                          if (errors.portfolioUrl) setErrors((prev) => ({ ...prev, portfolioUrl: undefined }));
-                        }}
-                        placeholder="https://yourportfolio.dev"
-                        className={`w-full pl-3.5 pr-20 py-2.5 rounded-xl border ${
-                          errors.portfolioUrl ? "border-[#991B1B] bg-red-50/20" : "border-[#D6CEBE] bg-[#FAF8F5]"
-                        } text-sm text-[#24201D] placeholder:text-[#A89E8D] focus:outline-none focus:border-[#24201D] focus:bg-[#FFFFFF] transition-all font-mono text-xs`}
-                      />
-                      <span className="absolute right-2.5 top-2.5 text-[9px] uppercase font-mono font-semibold text-[#2E6B47] bg-[#EDF7F0] border border-[#A3D9B1] px-1.5 py-0.5 rounded">
-                        PROJECTS
-                      </span>
-                    </div>
-                    {errors.portfolioUrl && (
-                      <p className="text-xs text-[#991B1B] font-medium mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>{errors.portfolioUrl}</span>
-                      </p>
-                    )}
+                {/* 5. Design Portfolio / Figma / Behance (Full-width, same style as GitHub/LeetCode) */}
+                <div>
+                  <label className="block text-xs font-medium text-[#4A4036] mb-1 flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-[#2E6B47]" />
+                    <span>Design Portfolio / Figma / Behance</span>
+                    <span className="text-[10px] text-[#8A7E6C] font-mono ml-auto">Optional</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={portfolioUrl}
+                      onChange={(e) => {
+                        setPortfolioUrl(e.target.value);
+                        if (errors.portfolioUrl) setErrors((prev) => ({ ...prev, portfolioUrl: undefined }));
+                      }}
+                      placeholder="figma.com/@... or behance.net/..."
+                      className={`w-full pl-3.5 pr-24 py-2.5 rounded-xl border ${
+                        errors.portfolioUrl ? "border-[#991B1B] bg-red-50/20" : "border-[#D6CEBE] bg-[#FAF8F5]"
+                      } text-sm text-[#24201D] placeholder:text-[#A89E8D] focus:outline-none focus:border-[#24201D] focus:bg-[#FFFFFF] transition-all font-mono text-xs sm:text-sm`}
+                    />
+                    <span className="absolute right-3 top-2.5 text-[10px] uppercase font-mono font-semibold text-[#2E6B47] bg-[#EDF7F0] border border-[#A3D9B1] px-1.5 py-0.5 rounded">
+                      PORTFOLIO
+                    </span>
                   </div>
+                  {errors.portfolioUrl && (
+                    <p className="text-xs text-[#991B1B] font-medium mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{errors.portfolioUrl}</span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

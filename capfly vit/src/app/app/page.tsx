@@ -31,7 +31,6 @@ import {
   ChevronDown,
   Sun,
   Moon,
-  LayoutDashboard,
   FolderGit2,
   Map,
   Shield,
@@ -64,10 +63,14 @@ const DEMO_PROFILE: ProfileData = {
   jobDescription: "Backend / Full Stack SDE roles requiring strong DSA & problem solving skills",
 };
 
-export default function CareerLensPage() {
+export default function CareerLensPage({
+  initialTab = "analysis",
+}: {
+  initialTab?: "dashboard" | "analysis" | "roadmap";
+} = {}) {
   const [bgMode, setBgMode] = useState<"fabric" | "plaid">("fabric");
   const [darkMode, setDarkMode] = useState(false);
-  const [activeNavTab, setActiveNavTab] = useState<"dashboard" | "analysis" | "roadmap">("dashboard");
+  const [activeNavTab, setActiveNavTab] = useState<"dashboard" | "analysis" | "roadmap">(initialTab);
   const [currentStep, setCurrentStep] = useState<AppStep>(1);
   const [currentProfile, setCurrentProfile] = useState<ProfileData | null>(null);
   const [extractedProfile, setExtractedProfile] = useState<ExtractedProfile | null>(null);
@@ -369,10 +372,9 @@ export default function CareerLensPage() {
               dk ? "bg-[#1C1A17]/70 border-[#2E2B27]/80" : "bg-[#F0ECE1]/70 border-[#D6CEBE]/80"
             }`}
           >
-            {(["dashboard", "analysis", "roadmap"] as const).map((tab) => {
+            {(["analysis", "roadmap"] as const).map((tab) => {
               const isActive = activeNavTab === tab;
-              const icons: Record<"dashboard" | "analysis" | "roadmap", React.ReactNode> = {
-                dashboard: <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />,
+              const icons: Record<"analysis" | "roadmap", React.ReactNode> = {
                 analysis: (
                   <FolderGit2
                     className={`w-3.5 h-3.5 shrink-0 ${
@@ -382,8 +384,7 @@ export default function CareerLensPage() {
                 ),
                 roadmap: <Map className="w-3.5 h-3.5 shrink-0" />,
               };
-              const labels: Record<"dashboard" | "analysis" | "roadmap", string> = {
-                dashboard: "Dashboard",
+              const labels: Record<"analysis" | "roadmap", string> = {
                 analysis: "My Analysis",
                 roadmap: "Roadmap",
               };
@@ -393,9 +394,8 @@ export default function CareerLensPage() {
                   type="button"
                   onClick={() => {
                     setActiveNavTab(tab);
-                    if (tab === "dashboard") setCurrentStep(1);
                     if (tab === "roadmap") setCurrentStep(6);
-                    if (tab === "analysis") setCurrentStep(extractedProfile ? 3 : 2);
+                    if (tab === "analysis") setCurrentStep(extractedProfile ? 3 : 1);
                   }}
                   className={`inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap text-xs ${
                     isActive
@@ -467,16 +467,18 @@ export default function CareerLensPage() {
         <SidebarNav
           currentStep={currentStep}
           completedSteps={completedSteps}
-          onSelectStep={(s) => setCurrentStep(s)}
+          onSelectStep={(s) => {
+            setActiveNavTab("analysis");
+            setCurrentStep(s);
+          }}
           darkMode={dk}
           candidateName={candidateDisplayName}
           className="sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto self-start"
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
-
-          {/* STEP 1: Profile Input */}
-          {currentStep === 1 && (
+              {/* STEP 1: Profile Input */}
+              {currentStep === 1 && (
             <div className="max-w-4xl mx-auto space-y-6">
               {currentProfile && currentProfile.resume ? (
                 <div className="space-y-4">
@@ -621,6 +623,7 @@ export default function CareerLensPage() {
               groqSummary={backendAnalysis?.summary}
             />
           )}
+
 
         </main>
       </div>

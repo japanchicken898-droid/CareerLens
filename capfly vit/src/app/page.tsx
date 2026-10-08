@@ -95,7 +95,7 @@ export default function LandingPage() {
               href="/app"
               className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#141413] text-[#FAF8F5] text-xs font-semibold hover:bg-[#2B2925] transition-all shadow-xs cursor-pointer group"
             >
-              <span>Launch Audit</span>
+              <span>Resume Analyzer</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
@@ -148,17 +148,17 @@ export default function LandingPage() {
               href="/app"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-[#141413] text-[#FAF8F5] text-sm font-semibold hover:bg-[#2B2925] transition-all shadow-sm group cursor-pointer"
             >
-              <span>Launch Profile Audit</span>
+              <span>Resume Analyzer</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
 
-            <a
-              href="#architecture"
+            <Link
+              href="/dashboard"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#FFFFFF] border border-[#D6CEBE] text-[#141413] text-sm font-semibold hover:bg-[#F3EFE6] transition-all shadow-2xs cursor-pointer"
             >
               <Compass className="w-4 h-4 text-[#6E6659]" />
-              <span>Explore Cohort Intelligence</span>
-            </a>
+              <span>Placement Cell</span>
+            </Link>
           </div>
 
           {/* Subtle Key Metrics Strip */}
@@ -638,7 +638,7 @@ export default function LandingPage() {
               href="/app"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-[#FAF8F5] text-[#18231F] text-sm font-bold hover:bg-[#FFFFFF] transition-all shadow-md group cursor-pointer"
             >
-              <span>Launch Profile Audit</span>
+              <span>Resume Analyzer</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
 

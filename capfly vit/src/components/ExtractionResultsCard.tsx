@@ -36,6 +36,8 @@ interface ConsolidatedSkillItem {
   name: string;
   sources: ("resume" | "github" | "leetcode")[];
   evidence: string[];
+  /** Direct GitHub repo URL(s) found in evidence — used for badge links */
+  repoUrls: string[];
 }
 
 export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
@@ -71,6 +73,18 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
     return cleaned || "connected";
   }, [profile.leetcodeUrl]);
 
+  // Build a quick name→URL map from the fetched GitHub repos
+  const repoNameToUrl = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const repo of github.repositories) {
+      map.set(repo.name.toLowerCase(), repo.url);
+      // also map the short name without owner prefix
+      const short = repo.fullName?.split("/")[1]?.toLowerCase();
+      if (short) map.set(short, repo.url);
+    }
+    return map;
+  }, [github.repositories]);
+
   // Consolidate skills from all sources into unified cards
   const consolidatedSkills: ConsolidatedSkillItem[] = useMemo(() => {
     const map = new Map<
@@ -79,6 +93,7 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
         name: string;
         sources: Set<"resume" | "github" | "leetcode">;
         evidence: Set<string>;
+        repoUrls: Set<string>;
       }
     >();
 
@@ -112,6 +127,7 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
         name: displayName,
         sources: new Set<"resume" | "github" | "leetcode">(),
         evidence: new Set<string>(),
+        repoUrls: new Set<string>(),
       };
 
       // Keep canonical display name
@@ -125,6 +141,9 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
         existing.evidence.add(
           `Repo: ${s.evidence.repository}${s.evidence.language ? ` (${s.evidence.language})` : ""}`
         );
+        // Resolve to full GitHub repo URL if we have it
+        const repoUrl = repoNameToUrl.get(s.evidence.repository.toLowerCase());
+        if (repoUrl) existing.repoUrls.add(repoUrl);
       }
       if (s.evidence?.context) {
         existing.evidence.add(s.evidence.context);
@@ -142,6 +161,7 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
         name: "Data Structures & Algorithms (LeetCode)",
         sources: new Set<"resume" | "github" | "leetcode">(),
         evidence: new Set<string>(),
+        repoUrls: new Set<string>(),
       };
       existing.sources.add("leetcode");
       existing.evidence.add(`LeetCode Profile: @${leetcodeUsername} (DSA proof)`);
@@ -155,6 +175,7 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
         name: data.name,
         sources: Array.from(data.sources),
         evidence: Array.from(data.evidence),
+        repoUrls: Array.from(data.repoUrls),
       }))
       .sort((a, b) => {
         if (b.sources.length !== a.sources.length) {
@@ -162,7 +183,7 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
         }
         return a.name.localeCompare(b.name);
       });
-  }, [normalizedSkills, profile.leetcodeUrl, leetcodeUsername]);
+  }, [normalizedSkills, profile.leetcodeUrl, leetcodeUsername, repoNameToUrl]);
 
   // Filter skills by search query
   const filteredSkills = useMemo(() => {
@@ -453,61 +474,81 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
               return (
                 <div
                   key={skill.key}
-                  className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between space-y-2.5 ${
+                  className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between space-y-2.5 overflow-hidden ${
                     hasMultiSource
                       ? "bg-[#FAF8F5] border-[#B8AC97] hover:border-[#24201D]"
                       : "bg-[#FFFFFF] border-[#D6CEBE] hover:border-[#8A7E6C]"
                   }`}
                 >
                   {/* Card Header: Skill Name & Source Badges */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-bold text-sm text-[#24201D] leading-tight">
-                        {skill.name}
-                      </h4>
+                  <div className="space-y-2 min-w-0">
+                    <h4 className="font-bold text-sm sm:text-base text-[#24201D] leading-snug tracking-tight font-sans">
+                      {skill.name}
+                    </h4>
 
-                      {/* Source Badges */}
-                      <div className="flex flex-wrap items-center gap-1 shrink-0">
-                        {skill.sources.map((src) => {
-                          if (src === "resume") {
-                            return (
-                              <span
-                                key={src}
-                                className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#FAF1EC] text-[#B8532F] border border-[#EAC9BC]"
-                                title="Found on resume"
-                              >
-                                <FileText className="w-2.5 h-2.5" />
-                                Resume
-                              </span>
-                            );
-                          }
-                          if (src === "github") {
-                            return (
-                              <span
-                                key={src}
-                                className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#EDF7F0] text-[#2E6B47] border border-[#A3D9B1]"
-                                title="Found in public GitHub repos"
-                              >
-                                <GithubIcon className="w-2.5 h-2.5" />
-                                GitHub
-                              </span>
-                            );
-                          }
-                          if (src === "leetcode") {
-                            return (
-                              <span
-                                key={src}
-                                className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#FEF9C3] text-[#854D0E] border border-[#FDE047]"
-                                title="Verified LeetCode DSA proof"
-                              >
-                                <LeetcodeIcon className="w-2.5 h-2.5 text-[#FFA116]" />
-                                LeetCode
-                              </span>
-                            );
-                          }
-                          return null;
-                        })}
-                      </div>
+                    {/* Source Badges — clickable links to evidence source */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {skill.sources.map((src) => {
+                        if (src === "resume") {
+                          // Resume badge: if LinkedIn provided, treat as professional credential link
+                          const href = profile.linkedinUrl || null;
+                          const Tag = href ? "a" : "span";
+                          return (
+                            <Tag
+                              key={src}
+                              {...(href
+                                ? { href, target: "_blank", rel: "noreferrer", title: `View on LinkedIn — ${profile.linkedinUrl}` }
+                                : { title: "Found on resume" })}
+                              className={`inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#FAF1EC] text-[#B8532F] border border-[#EAC9BC] shrink-0 ${
+                                href ? "hover:bg-[#FDE8D8] hover:border-[#B8532F] cursor-pointer transition-colors" : ""
+                              }`}
+                            >
+                              <FileText className="w-2.5 h-2.5 shrink-0" />
+                              <span>Resume</span>
+                              {href && <ExternalLink className="w-2 h-2 opacity-60 shrink-0" />}
+                            </Tag>
+                          );
+                        }
+                        if (src === "github") {
+                          // GitHub badge: link to specific repo if available, else to the profile
+                          const href = skill.repoUrls[0] || profile.githubUrl || null;
+                          const repoName = skill.repoUrls[0]
+                            ? skill.repoUrls[0].split("/").slice(-1)[0]
+                            : null;
+                          return (
+                            <a
+                              key={src}
+                              href={href || "#"}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={repoName ? `View repo: ${repoName} on GitHub` : `View GitHub profile: ${profile.githubUrl}`}
+                              className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#EDF7F0] text-[#2E6B47] border border-[#A3D9B1] hover:bg-[#C7E9D5] hover:border-[#2E6B47] cursor-pointer transition-colors shrink-0 max-w-full"
+                            >
+                              <GithubIcon className="w-2.5 h-2.5 shrink-0" />
+                              <span className="truncate max-w-[120px] inline-block">{repoName ? repoName : "GitHub"}</span>
+                              <ExternalLink className="w-2 h-2 opacity-60 shrink-0" />
+                            </a>
+                          );
+                        }
+                        if (src === "leetcode") {
+                          const href = profile.leetcodeUrl || null;
+                          return (
+                            <a
+                              key={src}
+                              href={href || "#"}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={`View LeetCode DSA profile: ${profile.leetcodeUrl}`}
+                              className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#FEF9C3] text-[#854D0E] border border-[#FDE047] hover:bg-[#FEF08A] hover:border-[#CA8A04] cursor-pointer transition-colors shrink-0"
+                            >
+                              <LeetcodeIcon className="w-2.5 h-2.5 text-[#FFA116] shrink-0" />
+                              <span>LeetCode</span>
+                              <ExternalLink className="w-2 h-2 opacity-60 shrink-0" />
+                            </a>
+                          );
+                        }
+                        return null;
+                      })}
                     </div>
 
                     {/* Primary Evidence Detail */}
