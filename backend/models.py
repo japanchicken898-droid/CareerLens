@@ -58,3 +58,6 @@ class AnalyzeResponse(BaseModel):
     resume_status_text: str = "0 edu • 0 exp • 0 proj"
     extracted_skills: List[str] = []
     benchmark_metrics: Optional[BenchmarkMetrics] = None
+    ml_prediction: Optional[dict] = None
+    linkedin_url: Optional[str] = None
+    portfolio_url: Optional[str] = None

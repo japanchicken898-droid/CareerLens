@@ -26,6 +26,24 @@ export interface BenchmarkMetrics {
   scikit_learn_active: boolean;
 }
 
+export interface MLTopImportance {
+  feature: string;
+  weight_pct: number;
+  key: string;
+}
+
+export interface MLModelStats {
+  model_type: string;
+  n_estimators: number;
+  train_test_split: string;
+  sample_size: number;
+  r2: number;
+  rmse: number;
+  feature_importances: Record<string, number>;
+  top_importances: MLTopImportance[];
+  status: string;
+}
+
 export interface BackendAnalyzeResponse {
   candidate_name: string;
   target_role: string;
@@ -45,6 +63,9 @@ export interface BackendAnalyzeResponse {
   resume_status_text?: string;
   extracted_skills?: string[];
   benchmark_metrics?: BenchmarkMetrics;
+  ml_prediction?: Record<string, any>;
+  linkedin_url?: string;
+  portfolio_url?: string;
 }
 
 export interface BackendHealthResponse {
@@ -114,6 +135,8 @@ export async function analyzeProfileViaBackend(params: {
   leetcodeUsername?: string;
   targetRole: string;
   candidateName?: string;
+  linkedinUrl?: string;
+  portfolioUrl?: string;
 }): Promise<BackendAnalyzeResponse | null> {
   if (!params.resumeFile) {
     console.warn("[backendApiService] Resume file is mandatory. Aborting backend analyze call.");
@@ -130,6 +153,12 @@ export async function analyzeProfileViaBackend(params: {
     formData.append("target_role", params.targetRole);
     if (params.candidateName) {
       formData.append("candidate_name", params.candidateName);
+    }
+    if (params.linkedinUrl) {
+      formData.append("linkedin_url", params.linkedinUrl);
+    }
+    if (params.portfolioUrl) {
+      formData.append("portfolio_url", params.portfolioUrl);
     }
 
     const res = await fetch(`${API_BASE}/api/analyze`, {
@@ -162,4 +191,22 @@ export async function fetchBenchmarkMetrics(): Promise<BenchmarkMetrics | null> 
     return null;
   }
 }
+
+/**
+ * Fetches trained Scikit-Learn Random Forest model metadata, R², RMSE, and feature importances
+ */
+export async function fetchMLModelStats(): Promise<MLModelStats | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/ml-model-stats`, {
+      method: "GET",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.warn("[backendApiService] FastAPI ml-model-stats unreachable:", err);
+    return null;
+  }
+}
+
 

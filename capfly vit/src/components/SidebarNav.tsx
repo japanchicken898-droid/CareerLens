@@ -11,6 +11,7 @@ interface SidebarNavProps {
   onSelectStep: (step: AppStep) => void;
   darkMode?: boolean;
   candidateName?: string;
+  className?: string;
 }
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -19,6 +20,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   onSelectStep,
   darkMode = false,
   candidateName = "Student",
+  className = "",
 }) => {
   const dk = darkMode;
   const progressPct = Math.round((completedSteps.length / 6) * 100);
@@ -34,11 +36,11 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
 
   return (
     <aside
-      className={`w-full lg:w-68 shrink-0 flex flex-col justify-between p-4 border-b lg:border-b-0 lg:border-r self-stretch transition-colors duration-300 relative ${
+      className={`w-full lg:w-68 shrink-0 flex flex-col justify-between p-4 border-b lg:border-b-0 lg:border-r sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto self-start transition-colors duration-300 z-10 ${
         dk
           ? "border-[#2E2B27]/80 bg-[#161412] text-[#EDE8DF]"
           : "border-[#D6CEBE]/80 bg-[#FAF8F5] text-[#24201D]"
-      }`}
+      } ${className}`}
     >
       <div className="space-y-5">
         {/* Brand Header with Emerald & Slate Accents */}

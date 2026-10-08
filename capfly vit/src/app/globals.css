@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+.font-serif-display {
+  font-family: 'Playfair Display', Georgia, Cambria, serif;
+}
+
+.font-editorial {
+  font-family: 'Newsreader', Georgia, Cambria, serif;
+}
+
 :root {
   --canvas-bg: #F7F5F0;
   --canvas-grid: #E6DFD3;

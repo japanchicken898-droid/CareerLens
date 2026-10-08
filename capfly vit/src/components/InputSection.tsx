@@ -9,9 +9,9 @@ import {
   normalizeUrl,
   validateProfileInput,
 } from "@/utils/validation";
-import { extractCandidateNameFromPdf } from "@/utils/pdfNameExtractor";
+import { extractCandidateNameFromPdf, extractResumeMetadataFromPdf } from "@/utils/pdfNameExtractor";
 import { extractNameViaBackend, checkBackendHealth } from "@/services/backendApiService";
-import { GithubIcon, LeetcodeIcon } from "@/components/Icons";
+import { GithubIcon, LeetcodeIcon, LinkedinIcon } from "@/components/Icons";
 import {
   UploadCloud,
   FileCheck,
@@ -23,6 +23,7 @@ import {
   User,
   Loader2,
   Sparkles,
+  Globe,
 } from "lucide-react";
 
 interface InputSectionProps {
@@ -58,6 +59,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
 
   const [githubUrl, setGithubUrl] = useState(initialProfile?.githubUrl || "");
   const [leetcodeUrl, setLeetcodeUrl] = useState(initialProfile?.leetcodeUrl || "");
+  const [linkedinUrl, setLinkedinUrl] = useState(initialProfile?.linkedinUrl || "");
+  const [portfolioUrl, setPortfolioUrl] = useState(initialProfile?.portfolioUrl || "");
 
   const [targetRole, setTargetRole] = useState(initialProfile?.targetRole || "Backend Developer");
   const [jobDescription, setJobDescription] = useState(initialProfile?.jobDescription || "");
@@ -95,16 +98,17 @@ export const InputSection: React.FC<InputSectionProps> = ({
     setResumeFileName(file.name);
     setResumeFileSize(file.size);
 
-    // Auto-extract candidate name from PDF page 1 via FastAPI backend (with client fallback)
+    // Auto-extract candidate name and online profiles from PDF page 1
     setIsExtractingName(true);
     try {
       // 1. Try FastAPI backend endpoint (pdfplumber)
       const backendResult = await extractNameViaBackend(file);
       let extractedName = backendResult?.name?.trim() || "";
 
-      // 2. Client-side fallback if backend returned empty
-      if (!extractedName) {
-        extractedName = (await extractCandidateNameFromPdf(file)) || "";
+      // 2. Client-side link and fallback extractor
+      const pdfMeta = await extractResumeMetadataFromPdf(file);
+      if (!extractedName && pdfMeta.name) {
+        extractedName = pdfMeta.name.trim();
       }
 
       if (extractedName && extractedName.trim()) {
@@ -112,8 +116,22 @@ export const InputSection: React.FC<InputSectionProps> = ({
         setAutoExtracted(true);
         setErrors((prev) => ({ ...prev, name: undefined }));
       }
+
+      // Pre-fill links if user hasn't typed them yet
+      if (pdfMeta.githubUrl) {
+        setGithubUrl((prev) => prev.trim() ? prev : pdfMeta.githubUrl!);
+      }
+      if (pdfMeta.leetcodeUrl) {
+        setLeetcodeUrl((prev) => prev.trim() ? prev : pdfMeta.leetcodeUrl!);
+      }
+      if (pdfMeta.linkedinUrl) {
+        setLinkedinUrl((prev) => prev.trim() ? prev : pdfMeta.linkedinUrl!);
+      }
+      if (pdfMeta.portfolioUrl) {
+        setPortfolioUrl((prev) => prev.trim() ? prev : pdfMeta.portfolioUrl!);
+      }
     } catch (err) {
-      console.warn("Could not auto-extract candidate name:", err);
+      console.warn("Could not auto-extract candidate details:", err);
     } finally {
       setIsExtractingName(false);
     }
@@ -156,8 +174,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
       resumeFileName,
       githubUrl,
       leetcodeUrl,
-      portfolioUrl: "",
-      linkedinUrl: "",
+      portfolioUrl,
+      linkedinUrl,
       additionalLinks: [],
       targetRole,
       jobDescription,
@@ -189,8 +207,8 @@ export const InputSection: React.FC<InputSectionProps> = ({
         resumeFileSize: resumeFile ? resumeFile.size : resumeFileSize,
         githubUrl: normalizeUrl(githubUrl),
         leetcodeUrl: normalizeUrl(leetcodeUrl),
-        portfolioUrl: "",
-        linkedinUrl: "",
+        portfolioUrl: portfolioUrl.trim() ? normalizeUrl(portfolioUrl) : "",
+        linkedinUrl: linkedinUrl.trim() ? normalizeUrl(linkedinUrl) : "",
         additionalLinks: [],
         targetRole: targetRole.trim(),
         jobDescription: jobDescription.trim(),
@@ -460,6 +478,77 @@ export const InputSection: React.FC<InputSectionProps> = ({
                       <span>{errors.leetcodeUrl}</span>
                     </p>
                   )}
+                </div>
+
+                {/* 4. LinkedIn Profile URL & 5. Portfolio Website URL (Side-by-side grid) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                  {/* LinkedIn Profile URL */}
+                  <div>
+                    <label className="block text-xs font-medium text-[#4A4036] mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <LinkedinIcon className="w-3.5 h-3.5 text-[#0A66C2]" />
+                        <span>LinkedIn Profile URL</span>
+                      </span>
+                      <span className="text-[10px] text-[#8A7E6C] font-mono">Optional</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={linkedinUrl}
+                        onChange={(e) => {
+                          setLinkedinUrl(e.target.value);
+                          if (errors.linkedinUrl) setErrors((prev) => ({ ...prev, linkedinUrl: undefined }));
+                        }}
+                        placeholder="https://linkedin.com/in/username"
+                        className={`w-full pl-3.5 pr-20 py-2.5 rounded-xl border ${
+                          errors.linkedinUrl ? "border-[#991B1B] bg-red-50/20" : "border-[#D6CEBE] bg-[#FAF8F5]"
+                        } text-sm text-[#24201D] placeholder:text-[#A89E8D] focus:outline-none focus:border-[#24201D] focus:bg-[#FFFFFF] transition-all font-mono text-xs`}
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-[9px] uppercase font-mono font-semibold text-[#0A66C2] bg-[#EBF3FB] border border-[#BFDBFE] px-1.5 py-0.5 rounded">
+                        NETWORK
+                      </span>
+                    </div>
+                    {errors.linkedinUrl && (
+                      <p className="text-xs text-[#991B1B] font-medium mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{errors.linkedinUrl}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Portfolio Website URL */}
+                  <div>
+                    <label className="block text-xs font-medium text-[#4A4036] mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-[#2E6B47]" />
+                        <span>Portfolio Website</span>
+                      </span>
+                      <span className="text-[10px] text-[#8A7E6C] font-mono">Optional</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={portfolioUrl}
+                        onChange={(e) => {
+                          setPortfolioUrl(e.target.value);
+                          if (errors.portfolioUrl) setErrors((prev) => ({ ...prev, portfolioUrl: undefined }));
+                        }}
+                        placeholder="https://yourportfolio.dev"
+                        className={`w-full pl-3.5 pr-20 py-2.5 rounded-xl border ${
+                          errors.portfolioUrl ? "border-[#991B1B] bg-red-50/20" : "border-[#D6CEBE] bg-[#FAF8F5]"
+                        } text-sm text-[#24201D] placeholder:text-[#A89E8D] focus:outline-none focus:border-[#24201D] focus:bg-[#FFFFFF] transition-all font-mono text-xs`}
+                      />
+                      <span className="absolute right-2.5 top-2.5 text-[9px] uppercase font-mono font-semibold text-[#2E6B47] bg-[#EDF7F0] border border-[#A3D9B1] px-1.5 py-0.5 rounded">
+                        PROJECTS
+                      </span>
+                    </div>
+                    {errors.portfolioUrl && (
+                      <p className="text-xs text-[#991B1B] font-medium mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{errors.portfolioUrl}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

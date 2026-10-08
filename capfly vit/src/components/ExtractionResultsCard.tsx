@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import type { ExtractedProfile } from "@/types/extraction";
-import { GithubIcon, LeetcodeIcon } from "@/components/Icons";
+import { GithubIcon, LeetcodeIcon, LinkedinIcon } from "@/components/Icons";
 import { NoResumeLockCard } from "@/components/NoResumeLockCard";
 import {
   FileText,
@@ -21,6 +21,7 @@ import {
   ChevronUp,
   Layers,
   Code2,
+  Globe,
 } from "lucide-react";
 
 interface ExtractionResultsCardProps {
@@ -338,6 +339,71 @@ export const ExtractionResultsCard: React.FC<ExtractionResultsCardProps> = ({
             <p className="text-[11px] text-[#6E6659] truncate font-mono">
               DSA Proof Verified
             </p>
+          </div>
+        </div>
+
+        {/* Connected Online Profiles Strip */}
+        <div className="pt-3 border-t border-[#E8E2D7] flex flex-wrap items-center justify-between gap-3 text-xs">
+          <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-[#8A7E6C]">
+            Connected Candidate Profiles
+          </span>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {profile.githubUrl && (
+              <a
+                href={profile.githubUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF8F5] border border-[#D6CEBE] hover:border-[#24201D] text-[#24201D] font-mono text-xs shadow-2xs transition-colors"
+                title="View GitHub Profile"
+              >
+                <GithubIcon className="w-3.5 h-3.5 text-[#24201D]" />
+                <span className="truncate max-w-[130px]">{profile.githubUrl.replace(/^https?:\/\/(www\.)?github\.com\/?/i, "@") || "GitHub"}</span>
+                <ExternalLink className="w-3 h-3 text-[#8A7E6C]" />
+              </a>
+            )}
+
+            {profile.leetcodeUrl && (
+              <a
+                href={profile.leetcodeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF8F5] border border-[#D6CEBE] hover:border-[#FFA116] text-[#24201D] font-mono text-xs shadow-2xs transition-colors"
+                title="View LeetCode Profile"
+              >
+                <LeetcodeIcon className="w-3.5 h-3.5 text-[#FFA116]" />
+                <span className="truncate max-w-[130px]">{leetcodeUsername ? `@${leetcodeUsername}` : "LeetCode"}</span>
+                <ExternalLink className="w-3 h-3 text-[#8A7E6C]" />
+              </a>
+            )}
+
+            {profile.linkedinUrl && (
+              <a
+                href={profile.linkedinUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF8F5] border border-[#D6CEBE] hover:border-[#0A66C2] text-[#0A66C2] font-mono text-xs shadow-2xs transition-colors"
+                title="View LinkedIn Profile"
+              >
+                <LinkedinIcon className="w-3.5 h-3.5 text-[#0A66C2]" />
+                <span className="truncate max-w-[140px]">{profile.linkedinUrl.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\/?/i, "in/") || "LinkedIn"}</span>
+                <ExternalLink className="w-3 h-3 text-[#8A7E6C]" />
+              </a>
+            )}
+
+            {profile.portfolioUrl && (
+              <a
+                href={profile.portfolioUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF8F5] border border-[#D6CEBE] hover:border-[#2E6B47] text-[#2E6B47] font-mono text-xs shadow-2xs transition-colors"
+                title="View Portfolio Website"
+              >
+                <Globe className="w-3.5 h-3.5 text-[#2E6B47]" />
+                <span className="truncate max-w-[140px]">{profile.portfolioUrl.replace(/^https?:\/\//i, "") || "Portfolio"}</span>
+                <ExternalLink className="w-3 h-3 text-[#8A7E6C]" />
+              </a>
+            )}
           </div>
         </div>
       </div>

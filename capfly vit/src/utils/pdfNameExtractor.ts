@@ -106,3 +106,66 @@ export async function extractCandidateNameFromPdf(file: File): Promise<string | 
 
   return null;
 }
+
+export interface ExtractedPdfProfile {
+  name: string | null;
+  githubUrl: string | null;
+  leetcodeUrl: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+}
+
+export async function extractResumeMetadataFromPdf(file: File): Promise<ExtractedPdfProfile> {
+  let name = await extractCandidateNameFromPdf(file);
+  let githubUrl: string | null = null;
+  let leetcodeUrl: string | null = null;
+  let linkedinUrl: string | null = null;
+  let portfolioUrl: string | null = null;
+
+  try {
+    const pdfjs = await import("pdfjs-dist");
+    if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.min.mjs",
+        import.meta.url
+      ).toString();
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+
+    if (pdf.numPages >= 1) {
+      const page = await pdf.getPage(1);
+      const textContent = await page.getTextContent();
+      const allText = textContent.items
+        .map((item) => ("str" in item ? item.str : ""))
+        .join(" ");
+
+      // Regex for profiles
+      const ghMatch = allText.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_-]+)/i);
+      if (ghMatch) githubUrl = `https://github.com/${ghMatch[1]}`;
+
+      const lcMatch = allText.match(/(?:https?:\/\/)?(?:www\.)?leetcode\.com\/(?:u\/)?([a-zA-Z0-9_-]+)/i);
+      if (lcMatch) leetcodeUrl = `https://leetcode.com/u/${lcMatch[1]}`;
+
+      const liMatch = allText.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/([a-zA-Z0-9_-]+)/i);
+      if (liMatch) linkedinUrl = `https://linkedin.com/in/${liMatch[1]}`;
+
+      // Portfolio match e.g. https://...dev, .me, .tech, .io, .site, .app (not github/linkedin/leetcode)
+      const portMatch = allText.match(/https?:\/\/([a-zA-Z0-9.-]+\.(?:dev|me|tech|io|site|app|portfolio|live|work))(?:\/[^\s,]*)?/i);
+      if (portMatch && !portMatch[0].includes("github.com") && !portMatch[0].includes("linkedin.com") && !portMatch[0].includes("leetcode.com")) {
+        portfolioUrl = portMatch[0];
+      }
+    }
+  } catch (err) {
+    console.warn("Could not extract links from PDF:", err);
+  }
+
+  return {
+    name,
+    githubUrl,
+    leetcodeUrl,
+    linkedinUrl,
+    portfolioUrl,
+  };
+}
